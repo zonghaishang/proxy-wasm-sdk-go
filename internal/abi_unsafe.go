@@ -28,6 +28,13 @@ func parseString(buf *byte, len int) string {
 	}))
 }
 
+func parseSliceString(buf []byte) string {
+	if len(buf) <= 0 {
+		return ""
+	}
+	return *(*string)(unsafe.Pointer(&buf))
+}
+
 // parseByteSlice parse byte pointer to byte slice
 func parseByteSlice(buf *byte, len int) []byte {
 	if len <= 0 || buf == nil {
