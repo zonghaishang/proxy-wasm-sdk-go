@@ -113,3 +113,9 @@ func (level LogLevel) String() string {
 		panic("unsupported log level")
 	}
 }
+
+type ExtensionType int
+
+const (
+	StreamFilter ExtensionType = 1
+)

@@ -8,7 +8,8 @@ import (
 // parseBytes parse string to byte pointer
 func parseBytePtr(message string) *byte {
 	if len(message) == 0 {
-		return nil
+		buffer := make([]byte, 1)
+		return &buffer[0]
 	}
 
 	buffer := *(*[]byte)(unsafe.Pointer(&message))
@@ -38,7 +39,7 @@ func parseSliceString(buf []byte) string {
 // parseByteSlice parse byte pointer to byte slice
 func parseByteSlice(buf *byte, len int) []byte {
 	if len <= 0 || buf == nil {
-		return nil
+		return []byte{}
 	}
 
 	return *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{
