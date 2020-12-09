@@ -1,13 +1,13 @@
-package internal
+package spec
 
 import (
-	"github.com/zonghaishang/proxy-wasm-sdk-go/internal/types"
+	"github.com/zonghaishang/proxy-wasm-sdk-go/spec/types"
 	"sync"
 )
 
 type loader struct {
 	data map[types.ExtensionType]*Node
-	mu   sync.RWMutex // protect data internal
+	mu   sync.RWMutex // protect data spec
 }
 
 // Register register extension loader

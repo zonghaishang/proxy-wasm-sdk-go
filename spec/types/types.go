@@ -36,6 +36,15 @@ const (
 	HttpResponse StreamType = 4
 )
 
+type ContextType uint32
+
+const (
+	VmContext     ContextType = 1
+	PluginContext ContextType = 2
+	StreamContext ContextType = 3
+	HttpContext   ContextType = 4
+)
+
 type BufferType uint32
 
 const (
@@ -117,5 +126,8 @@ func (level LogLevel) String() string {
 type ExtensionType int
 
 const (
-	StreamFilter ExtensionType = 1
+	VmContextFilter     ExtensionType = 1
+	PluginContextFilter ExtensionType = 2
+	StreamContextFilter ExtensionType = 3
+	HttpContextFilter   ExtensionType = 4
 )

@@ -1,6 +1,6 @@
-package internal
+package spec
 
-import "github.com/zonghaishang/proxy-wasm-sdk-go/internal/types"
+import "github.com/zonghaishang/proxy-wasm-sdk-go/spec/types"
 
 //export proxy_get_buffer
 func proxyGetBuffer(bt types.BufferType, offset int, maxSize int, buf **byte, len *int) types.Status {

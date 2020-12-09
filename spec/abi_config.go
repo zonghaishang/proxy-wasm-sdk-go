@@ -1,4 +1,4 @@
-package internal
+package spec
 
 //export proxy_on_vm_start
 func proxyOnVMStart(rootContextID uint32, vmConfigurationSize int) bool {
