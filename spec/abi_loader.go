@@ -51,7 +51,7 @@ func (m *loader) Register(eType types.ExtensionType, node *Node) {
 				next.Order = node.Order
 				next.Context = node.Context
 			}
-			// release lock and no nothing
+			// release lock and do nothing
 			m.mu.Unlock()
 			return
 		}
