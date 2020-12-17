@@ -1,15 +1,25 @@
 package proxy
 
-import "errors"
+import (
+	"encoding/binary"
+	"errors"
+	"io"
+)
 
 const (
-	maxInt          = int(^uint(0) >> 1) // maxInt is max buffer length limit
-	smallBufferSize = 128                // smallBufferSize is an initial allocation minimal capacity.
+	maxInt                = int(^uint(0) >> 1) // maxInt is max buffer length limit
+	smallBufferSize       = 128                // smallBufferSize is an initial allocation minimal capacity.
+	resetOffMark          = -1                 // buffer mark flag
+	BigEndian       Order = 1                  // big endian byteOrder
+	LittleEndian    Order = 2                  // little endian byteOrder
 )
 
 var BufferTooLarge = errors.New("wasm plugin Buffer: too large")
+var IndexOutOfBound = errors.New("wasm plugin Buffer: index out of bound")
 
 type ConfigMap Header
+
+type Order int
 
 type Header interface {
 	// Get value of key
@@ -42,6 +52,7 @@ type Buffer interface {
 	Drain(len int)
 	Mark()
 	ResetMark()
+	ByteOrder(order Order) Buffer
 
 	WriteByte(value byte) error
 	WriteUint16(value uint16) error
@@ -86,14 +97,28 @@ type Buffer interface {
 	GetInt64(index int) (int64, error)
 }
 
-//func NewBuffer(size int) Buffer {
-//	//return GetIoBuffer(size)
-//}
+func AllocateBuffer() Buffer {
+	return NewBuffer(smallBufferSize)
+}
+
+func NewBuffer(size int) Buffer {
+	cap := size
+	if cap < smallBufferSize {
+		cap = smallBufferSize
+	}
+	return &byteBuffer{
+		buf:       make([]byte, size, cap),
+		pos:       0,
+		mark:      resetOffMark,
+		byteOrder: binary.BigEndian,
+	}
+}
 
 type byteBuffer struct {
-	buf  []byte // contents are the bytes buf[pos : len(buf)]
-	pos  int    // read at &buf[pos], write at &buf[len(buf)]
-	mark int
+	buf       []byte           // contents are the bytes buf[pos : len(buf)]
+	pos       int              // read at &buf[pos], write at &buf[len(buf)]
+	mark      int              // mark flag
+	byteOrder binary.ByteOrder // byte byteOrder
 }
 
 func (b *byteBuffer) Bytes() []byte {
@@ -123,168 +148,393 @@ func (b *byteBuffer) Reset() {
 	b.pos = 0
 }
 
-func (b *byteBuffer) Peek(n int) []byte {
-
+func (b *byteBuffer) ByteOrder(order Order) Buffer {
+	switch order {
+	case BigEndian:
+		b.byteOrder = binary.BigEndian
+	case LittleEndian:
+		b.byteOrder = binary.LittleEndian
+	default:
+		b.byteOrder = binary.BigEndian
+	}
+	return b
 }
 
-func (b *byteBuffer) Drain(len int) {
+func (b *byteBuffer) Peek(n int) []byte {
+	if len(b.buf)-b.pos < n {
+		return nil
+	}
 
+	return b.buf[b.pos : b.pos+n]
+}
+
+func (b *byteBuffer) Drain(n int) {
+	if b.pos+n > len(b.buf) {
+		// update pos to the end of b.buf
+		b.pos = len(b.buf) - 1
+		b.mark = resetOffMark
+		return
+	}
+
+	b.pos += n
+	b.mark = resetOffMark
 }
 
 func (b *byteBuffer) Mark() {
-
+	b.mark = b.pos
 }
 
 func (b *byteBuffer) ResetMark() {
-
+	if b.mark != resetOffMark {
+		b.pos = b.mark
+		b.mark = resetOffMark
+	}
 }
 
 func (b *byteBuffer) WriteByte(value byte) error {
+	m, ok := b.tryGrowBySlice(1)
+	if !ok {
+		m = b.grow(1)
+	}
 
+	b.buf[m] = value
+	return nil
 }
 
 func (b *byteBuffer) WriteUint16(value uint16) error {
+	m, ok := b.tryGrowBySlice(2)
+	if !ok {
+		m = b.grow(2)
+	}
 
+	b.byteOrder.PutUint16(b.buf[m:], value)
+	return nil
 }
 
 func (b *byteBuffer) WriteUint32(value uint32) error {
+	m, ok := b.tryGrowBySlice(4)
+	if !ok {
+		m = b.grow(4)
+	}
 
+	b.byteOrder.PutUint32(b.buf[m:], value)
+	return nil
 }
 
 func (b *byteBuffer) WriteUint(value uint) error {
-
+	return b.WriteUint32(uint32(value))
 }
 
 func (b *byteBuffer) WriteUint64(value uint64) error {
+	m, ok := b.tryGrowBySlice(8)
+	if !ok {
+		m = b.grow(8)
+	}
 
+	b.byteOrder.PutUint64(b.buf[m:], value)
+	return nil
 }
 
 func (b *byteBuffer) WriteInt16(value int16) error {
-
+	return b.WriteUint16(uint16(value))
 }
 
 func (b *byteBuffer) WriteInt32(value int32) error {
-
+	return b.WriteUint32(uint32(value))
 }
 
 func (b *byteBuffer) WriteInt(value int) error {
-
+	return b.WriteUint32(uint32(value))
 }
 
 func (b *byteBuffer) WriteInt64(value int64) error {
-
+	return b.WriteUint64(uint64(value))
 }
 
-func (b *byteBuffer) PutByte(index int, value byte) error {
-
+func (b *byteBuffer) PutByte(i int, value byte) error {
+	if i < 0 {
+		panic("bytes.Buffer.PutByte: negative put index")
+	}
+	b.tryGrowSlice0(i, 1)
+	b.buf[i] = value
+	return nil
 }
 
-func (b *byteBuffer) PutUint16(index int, value uint16) error {
-
+func (b *byteBuffer) PutUint16(i int, value uint16) error {
+	if i < 0 {
+		panic("bytes.Buffer.PutUint16: negative put index")
+	}
+	b.tryGrowSlice0(i, 2)
+	b.byteOrder.PutUint16(b.buf[i:], value)
+	return nil
 }
 
-func (b *byteBuffer) PutUint32(index int, value uint32) error {
-
+func (b *byteBuffer) PutUint32(i int, value uint32) error {
+	if i < 0 {
+		panic("bytes.Buffer.PutUint32: negative put index")
+	}
+	b.tryGrowSlice0(i, 4)
+	b.byteOrder.PutUint32(b.buf[i:], value)
+	return nil
 }
 
-func (b *byteBuffer) PutUint(index int, value uint) error {
-
+func (b *byteBuffer) PutUint(i int, value uint) error {
+	if i < 0 {
+		panic("bytes.Buffer.PutUint: negative put index")
+	}
+	b.tryGrowSlice0(i, 4)
+	b.byteOrder.PutUint32(b.buf[i:], uint32(value))
+	return nil
 }
 
-func (b *byteBuffer) PutUint64(index int, value uint64) error {
-
+func (b *byteBuffer) PutUint64(i int, value uint64) error {
+	if i < 0 {
+		panic("bytes.Buffer.PutUint64: negative put index")
+	}
+	b.tryGrowSlice0(i, 8)
+	b.byteOrder.PutUint64(b.buf[i:], value)
+	return nil
 }
 
-func (b *byteBuffer) PutInt16(index int, value int16) error {
-
+func (b *byteBuffer) PutInt16(i int, value int16) error {
+	if i < 0 {
+		panic("bytes.Buffer.PutInt16: negative put index")
+	}
+	b.tryGrowSlice0(i, 2)
+	b.byteOrder.PutUint16(b.buf[i:], uint16(value))
+	return nil
 }
 
-func (b *byteBuffer) PutInt32(index int, value int32) error {
-
+func (b *byteBuffer) PutInt32(i int, value int32) error {
+	if i < 0 {
+		panic("bytes.Buffer.PutInt32: negative put index")
+	}
+	b.tryGrowSlice0(i, 4)
+	b.byteOrder.PutUint32(b.buf[i:], uint32(value))
+	return nil
 }
 
-func (b *byteBuffer) PutInt(index int, value int) error {
-
+func (b *byteBuffer) PutInt(i int, value int) error {
+	if i < 0 {
+		panic("bytes.Buffer.PutInt: negative put index")
+	}
+	b.tryGrowSlice0(i, 4)
+	b.byteOrder.PutUint32(b.buf[i:], uint32(value))
+	return nil
 }
 
-func (b *byteBuffer) PutInt64(index int, value int64) error {
-
+func (b *byteBuffer) PutInt64(i int, value int64) error {
+	if i < 0 {
+		panic("bytes.Buffer.PutInt64: negative put index")
+	}
+	b.tryGrowSlice0(i, 8)
+	b.byteOrder.PutUint64(b.buf[i:], uint64(value))
+	return nil
 }
 
 func (b *byteBuffer) Write(p []byte) (n int, err error) {
+	m, ok := b.tryGrowBySlice(len(p))
+	if !ok {
+		m = b.grow(len(p))
+	}
 
+	return copy(b.buf[m:], p), nil
 }
 
 func (b *byteBuffer) ReadByte() (byte, error) {
-
+	if b.pos >= len(b.buf) {
+		return 0, io.EOF
+	}
+	v := b.buf[b.pos]
+	b.pos++
+	return v, nil
 }
 
 func (b *byteBuffer) ReadUint16() (uint16, error) {
+	if b.pos+1 >= len(b.buf) {
+		return 0, io.EOF
+	}
 
+	v := b.byteOrder.Uint16(b.buf[b.pos:])
+	b.pos += 2
+	return v, nil
 }
 
 func (b *byteBuffer) ReadUint32() (uint32, error) {
+	if b.pos+3 >= len(b.buf) {
+		return 0, io.EOF
+	}
 
+	v := b.byteOrder.Uint32(b.buf[b.pos:])
+	b.pos += 4
+	return v, nil
 }
 
 func (b *byteBuffer) ReadUint() (uint, error) {
-
+	v, err := b.ReadUint32()
+	if err != nil {
+		return 0, err
+	}
+	return uint(v), nil
 }
 
 func (b *byteBuffer) ReadUint64() (uint64, error) {
+	if b.pos+7 >= len(b.buf) {
+		return 0, io.EOF
+	}
 
+	v := b.byteOrder.Uint64(b.buf[b.pos:])
+	b.pos += 8
+	return v, nil
 }
 
 func (b *byteBuffer) ReadInt16() (int16, error) {
-
+	v, err := b.ReadUint16()
+	if err != nil {
+		return 0, err
+	}
+	return int16(v), nil
 }
 
 func (b *byteBuffer) ReadInt32() (int32, error) {
-
+	v, err := b.ReadUint32()
+	if err != nil {
+		return 0, err
+	}
+	return int32(v), nil
 }
 
 func (b *byteBuffer) ReadInt() (int, error) {
-
+	v, err := b.ReadUint32()
+	if err != nil {
+		return 0, err
+	}
+	return int(v), nil
 }
 
 func (b *byteBuffer) ReadInt64() (int64, error) {
-
+	v, err := b.ReadUint64()
+	if err != nil {
+		return 0, err
+	}
+	return int64(v), nil
 }
 
-func (b *byteBuffer) GetByte(index int) (byte, error) {
+func (b *byteBuffer) GetByte(i int) (byte, error) {
+	if i < 0 {
+		panic("bytes.Buffer.GetByte: negative get index")
+	}
 
+	if i >= len(b.buf) {
+		return 0, io.EOF
+	}
+
+	v := b.buf[i]
+	return v, nil
 }
 
-func (b *byteBuffer) GetUint16(index int) (uint16, error) {
+func (b *byteBuffer) GetUint16(i int) (uint16, error) {
+	if i < 0 {
+		panic("bytes.Buffer.GetUint16: negative get index")
+	}
 
+	if i+1 >= len(b.buf) {
+		return 0, io.EOF
+	}
+
+	v := b.byteOrder.Uint16(b.buf[i:])
+	return v, nil
 }
 
-func (b *byteBuffer) GetUint32(index int) (uint32, error) {
+func (b *byteBuffer) GetUint32(i int) (uint32, error) {
+	if i < 0 {
+		panic("bytes.Buffer.GetUint32: negative get index")
+	}
 
+	if i+3 >= len(b.buf) {
+		return 0, io.EOF
+	}
+
+	v := b.byteOrder.Uint32(b.buf[i:])
+	return v, nil
 }
 
-func (b *byteBuffer) GetUint(index int) (uint, error) {
+func (b *byteBuffer) GetUint(i int) (uint, error) {
+	if i < 0 {
+		panic("bytes.Buffer.GetUint: negative get index")
+	}
 
+	if i+3 >= len(b.buf) {
+		return 0, io.EOF
+	}
+
+	v := b.byteOrder.Uint32(b.buf[i:])
+	return uint(v), nil
 }
 
-func (b *byteBuffer) GetUint64(index int) (uint64, error) {
+func (b *byteBuffer) GetUint64(i int) (uint64, error) {
+	if i < 0 {
+		panic("bytes.Buffer.GetUint64: negative get index")
+	}
 
+	if i+7 >= len(b.buf) {
+		return 0, io.EOF
+	}
+
+	v := b.byteOrder.Uint64(b.buf[i:])
+	return v, nil
 }
 
-func (b *byteBuffer) GetInt16(index int) (int16, error) {
+func (b *byteBuffer) GetInt16(i int) (int16, error) {
+	if i < 0 {
+		panic("bytes.Buffer.GetInt16: negative get index")
+	}
 
+	if i+1 >= len(b.buf) {
+		return 0, io.EOF
+	}
+
+	v := b.byteOrder.Uint16(b.buf[i:])
+	return int16(v), nil
 }
 
-func (b *byteBuffer) GetInt32(index int) (int32, error) {
+func (b *byteBuffer) GetInt32(i int) (int32, error) {
+	if i < 0 {
+		panic("bytes.Buffer.GetInt32: negative get index")
+	}
 
+	if i+3 >= len(b.buf) {
+		return 0, io.EOF
+	}
+
+	v := b.byteOrder.Uint32(b.buf[i:])
+	return int32(v), nil
 }
 
-func (b *byteBuffer) GetInt(index int) (int, error) {
+func (b *byteBuffer) GetInt(i int) (int, error) {
+	if i < 0 {
+		panic("bytes.Buffer.GetInt: negative get index")
+	}
 
+	if i+3 >= len(b.buf) {
+		return 0, io.EOF
+	}
+
+	v := b.byteOrder.Uint32(b.buf[i:])
+	return int(v), nil
 }
 
-func (b *byteBuffer) GetInt64(index int) (int64, error) {
+func (b *byteBuffer) GetInt64(i int) (int64, error) {
+	if i < 0 {
+		panic("bytes.Buffer.GetInt: negative get index")
+	}
 
+	if i+3 >= len(b.buf) {
+		return 0, io.EOF
+	}
+
+	v := b.byteOrder.Uint64(b.buf[i:])
+	return int64(v), nil
 }
 
 // ======================== private method impl ========================
@@ -339,4 +589,14 @@ func (b *byteBuffer) tryGrowBySlice(n int) (int, bool) {
 		return l, true
 	}
 	return 0, false
+}
+
+func (b *byteBuffer) tryGrowSlice0(i, l int) {
+	n := i + l - len(b.buf)
+	if n > 0 {
+		_, ok := b.tryGrowBySlice(n)
+		if !ok {
+			b.grow(n)
+		}
+	}
 }
