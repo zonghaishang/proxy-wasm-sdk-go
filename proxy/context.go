@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"bytes"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/spec/types"
 )
 
@@ -13,8 +12,8 @@ type RootContext interface {
 }
 
 type StreamContext interface {
-	OnDownStreamReceived(headers Header, buffer bytes.Buffer, trailers Header)
-	OnUpstreamReceived(headers Header, buffer bytes.Buffer, trailers Header)
+	OnDownStreamReceived(headers Header, buffer Buffer, trailers Header)
+	OnUpstreamReceived(headers Header, buffer Buffer, trailers Header)
 	OnDownstreamClose(peerType types.PeerType)
 	OnNewConnection() types.Action
 	OnUpstreamClose(peerType types.PeerType)
@@ -22,7 +21,7 @@ type StreamContext interface {
 }
 
 type HttpContext interface {
-	OnHttpRequestReceived(headers Header, body bytes.Buffer)
-	OnHttpResponseReceived(headers Header, body bytes.Buffer)
+	OnHttpRequestReceived(headers Header, body Buffer)
+	OnHttpResponseReceived(headers Header, body Buffer)
 	OnHttpStreamDone()
 }
