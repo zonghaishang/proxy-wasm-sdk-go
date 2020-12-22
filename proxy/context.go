@@ -24,7 +24,7 @@ type HttpContext interface {
 	OnHttpStreamDone()
 }
 
-// L4 layer extension
+// L4 layer extension (host not support now.)
 type StreamContext interface {
 	OnDownstreamData(buffer Buffer, endOfStream bool) types.Action
 	OnDownstreamClose(peerType types.PeerType)
