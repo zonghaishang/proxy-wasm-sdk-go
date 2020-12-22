@@ -11,19 +11,28 @@ type RootContext interface {
 	OnVMDone() bool
 }
 
-type StreamContext interface {
+// L7 layer extension
+type FilterContext interface {
 	OnDownStreamReceived(headers Header, buffer Buffer, trailers Header) types.Action
-	OnDownstreamClose(peerType types.PeerType)
 	OnUpstreamReceived(headers Header, buffer Buffer, trailers Header) types.Action
-	OnNewConnection() types.Action
-	OnUpstreamClose(peerType types.PeerType)
-	OnStreamDone()
 }
 
+// L7 layer extension
 type HttpContext interface {
 	OnHttpRequestReceived(headers Header, body Buffer) types.Action
 	OnHttpResponseReceived(headers Header, body Buffer) types.Action
 	OnHttpStreamDone()
+}
+
+// L4 layer extension
+type StreamContext interface {
+	OnDownstreamData(buffer Buffer, endOfStream bool) types.Action
+	OnDownstreamClose(peerType types.PeerType)
+	OnNewConnection() types.Action
+	OnUpstreamData(buffer Buffer, endOfStream bool) types.Action
+	OnUpstreamClose(peerType types.PeerType)
+	OnStreamDone()
+	OnLog()
 }
 
 type ProtocolContext interface {
@@ -31,14 +40,16 @@ type ProtocolContext interface {
 
 type (
 	DefaultRootContext   struct{}
-	DefaultStreamContext struct{}
+	DefaultFilterContext struct{}
 	DefaultHttpContext   struct{}
+	DefaultStreamContext struct{}
 )
 
 var (
 	_ RootContext   = &DefaultRootContext{}
-	_ StreamContext = &DefaultStreamContext{}
+	_ FilterContext = &DefaultFilterContext{}
 	_ HttpContext   = &DefaultHttpContext{}
+	_ StreamContext = &DefaultStreamContext{}
 )
 
 // impl RootContext
@@ -47,17 +58,14 @@ func (*DefaultRootContext) OnVMStart(conf ConfigMap) bool     { return true }
 func (*DefaultRootContext) OnPluginStart(conf ConfigMap) bool { return true }
 func (*DefaultRootContext) OnVMDone() bool                    { return true }
 
-// impl StreamContext
-func (*DefaultStreamContext) OnDownStreamReceived(headers Header, buffer Buffer, trailers Header) types.Action {
+// impl FilterContext
+func (*DefaultFilterContext) OnDownStreamReceived(headers Header, buffer Buffer, trailers Header) types.Action {
 	return types.ActionContinue
 }
-func (*DefaultStreamContext) OnDownstreamClose(peerType types.PeerType) {}
-func (*DefaultStreamContext) OnUpstreamReceived(headers Header, buffer Buffer, trailers Header) types.Action {
+
+func (*DefaultFilterContext) OnUpstreamReceived(headers Header, buffer Buffer, trailers Header) types.Action {
 	return types.ActionContinue
 }
-func (*DefaultStreamContext) OnNewConnection() types.Action           { return types.ActionContinue }
-func (*DefaultStreamContext) OnUpstreamClose(peerType types.PeerType) {}
-func (*DefaultStreamContext) OnStreamDone()                           {}
 
 // impl HttpContext
 func (*DefaultHttpContext) OnHttpRequestReceived(headers Header, body Buffer) types.Action {
@@ -67,3 +75,28 @@ func (*DefaultHttpContext) OnHttpResponseReceived(headers Header, body Buffer) t
 	return types.ActionContinue
 }
 func (*DefaultHttpContext) OnHttpStreamDone() {}
+
+// impl StreamContext
+func (*DefaultStreamContext) OnDownstreamData(buffer Buffer, endOfStream bool) types.Action {
+	return types.ActionContinue
+}
+
+func (*DefaultStreamContext) OnDownstreamClose(peerType types.PeerType) {
+}
+
+func (*DefaultStreamContext) OnNewConnection() types.Action {
+	return types.ActionContinue
+}
+
+func (*DefaultStreamContext) OnUpstreamData(buffer Buffer, endOfStream bool) types.Action {
+	return types.ActionContinue
+}
+
+func (*DefaultStreamContext) OnUpstreamClose(peerType types.PeerType) {
+}
+
+func (*DefaultStreamContext) OnStreamDone() {
+}
+
+func (*DefaultStreamContext) OnLog() {
+}

@@ -150,6 +150,16 @@ func NewBuffer(size int) Buffer {
 	}
 }
 
+func Allocate(buf []byte) Buffer {
+	l := len(buf)
+	return &byteBuffer{
+		buf:       make([]byte, l, l),
+		pos:       0,
+		mark:      resetOffMark,
+		byteOrder: binary.BigEndian,
+	}
+}
+
 type byteBuffer struct {
 	buf       []byte           // contents are the bytes buf[pos : len(buf)]
 	pos       int              // read at &buf[pos], write at &buf[len(buf)]

@@ -17,6 +17,8 @@ type (
 type state struct {
 	newRootContext   func(contextID uint32) proxy.RootContext
 	rootContexts     map[uint32]*rootContextState
+	newFilterContext func(rootContextID, contextID uint32) proxy.FilterContext
+	filterStreams    map[uint32]proxy.FilterContext
 	newStreamContext func(rootContextID, contextID uint32) proxy.StreamContext
 	streams          map[uint32]proxy.StreamContext
 	newHttpContext   func(rootContextID, contextID uint32) proxy.HttpContext
@@ -31,6 +33,7 @@ type state struct {
 var this = &state{
 	rootContexts:     make(map[uint32]*rootContextState),
 	httpStreams:      make(map[uint32]proxy.HttpContext),
+	filterStreams:    make(map[uint32]proxy.FilterContext),
 	streams:          make(map[uint32]proxy.StreamContext),
 	contextIDToRooID: make(map[uint32]uint32),
 }
@@ -41,6 +44,10 @@ func SetNewRootContext(f func(contextID uint32) proxy.RootContext) {
 
 func SetNewHttpContext(f func(rootContextID, contextID uint32) proxy.HttpContext) {
 	this.newHttpContext = f
+}
+
+func SetNewFilterContext(f func(rootContextID, contextID uint32) proxy.FilterContext) {
+	this.newFilterContext = f
 }
 
 func SetNewStreamContext(f func(rootContextID, contextID uint32) proxy.StreamContext) {
@@ -65,18 +72,18 @@ func (s *state) createRootContext(contextID uint32) {
 	}
 }
 
-func (s *state) createStreamContext(contextID uint32, rootContextID uint32) {
+func (s *state) createFilterContext(contextID uint32, rootContextID uint32) {
 	if _, ok := s.rootContexts[rootContextID]; !ok {
 		panic("invalid root context id")
 	}
 
-	if _, ok := s.streams[contextID]; ok {
+	if _, ok := s.filterStreams[contextID]; ok {
 		panic("context id duplicated")
 	}
 
-	ctx := s.newStreamContext(rootContextID, contextID)
+	ctx := s.newFilterContext(rootContextID, contextID)
 	s.contextIDToRooID[contextID] = rootContextID
-	s.streams[contextID] = ctx
+	s.filterStreams[contextID] = ctx
 }
 
 func (s *state) createHttpContext(contextID uint32, rootContextID uint32) {
@@ -91,6 +98,20 @@ func (s *state) createHttpContext(contextID uint32, rootContextID uint32) {
 	ctx := s.newHttpContext(rootContextID, contextID)
 	s.contextIDToRooID[contextID] = rootContextID
 	s.httpStreams[contextID] = ctx
+}
+
+func (s *state) createStreamContext(contextID uint32, rootContextID uint32) {
+	if _, ok := s.rootContexts[rootContextID]; !ok {
+		panic("invalid root context id")
+	}
+
+	if _, ok := s.streams[contextID]; ok {
+		panic("context id duplicated")
+	}
+
+	ctx := s.newStreamContext(rootContextID, contextID)
+	s.contextIDToRooID[contextID] = rootContextID
+	s.streams[contextID] = ctx
 }
 
 func (s *state) registerHttpCallOut(calloutID uint32, callback HttpCalloutCallBack) {
