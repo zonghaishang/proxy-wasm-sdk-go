@@ -2,7 +2,7 @@ package spec
 
 import "encoding/binary"
 
-// encodeMap encode map to bytes
+// EncodeMap encode map to bytes
 // encoded bytes format:
 // pairs number + all key/value length + all key/value bytes
 //
@@ -11,7 +11,7 @@ import "encoding/binary"
 // 				   + 5(hello length) + 5(world length) => { "hello": "world" } length
 // 				   + key1 bytes + nil byte + value1 bytes + nil byte => { "key1": "value1" } bytes
 // 				   + hello bytes + nil byte + world bytes + nil byte => { "hello": "world" } bytes
-func encodeMap(pairs map[string]string) []byte {
+func EncodeMap(pairs map[string]string) []byte {
 	// pairs number
 	size := 4
 	for key, value := range pairs {
@@ -59,9 +59,9 @@ func encodeMap(pairs map[string]string) []byte {
 	return buf
 }
 
-// decodeMap decode map from byte slice
-// see encodeMap for more detail.
-func decodeMap(buf []byte) map[string]string {
+// DecodeMap decode map from byte slice
+// see EncodeMap for more detail.
+func DecodeMap(buf []byte) map[string]string {
 	// read pairs number
 	headers := binary.LittleEndian.Uint32(buf[0:4])
 	pairs := make(map[string]string, headers)
@@ -99,4 +99,22 @@ func decodeMap(buf []byte) map[string]string {
 	}
 
 	return pairs
+}
+
+func EncodePropertyPath(path []string) []byte {
+	if len(path) == 0 {
+		return []byte{}
+	}
+
+	var size int
+	for _, p := range path {
+		size += len(p) + 1
+	}
+	ret := make([]byte, 0, size)
+	for _, p := range path {
+		ret = append(ret, p...)
+		ret = append(ret, 0)
+	}
+	ret = ret[:len(ret)-1]
+	return ret
 }

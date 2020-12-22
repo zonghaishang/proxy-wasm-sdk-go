@@ -19,8 +19,8 @@ func TestDecodeMap(t *testing.T) {
 	maps["key1"] = "value1"
 	maps["hello"] = "world"
 
-	bytes := encodeMap(maps)
-	decoded := decodeMap(bytes)
+	bytes := EncodeMap(maps)
+	decoded := DecodeMap(bytes)
 
 	if val, ok := decoded["key1"]; !ok || val != "value1" {
 		t.Errorf("expect value 'value1' for key 'key1', actual '%s'", val)

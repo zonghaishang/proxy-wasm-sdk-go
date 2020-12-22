@@ -1,39 +1,36 @@
 package types
 
+import (
+	"errors"
+	"strconv"
+)
+
 // Action tell the host what action should be triggered
 type Action uint32
 
 const (
-	Continue         Action = 1
-	EndStream        Action = 2
-	Done             Action = 3
-	Pause            Action = 4
-	WaitForMoreData  Action = 5
-	WaitForEndOrFull Action = 6
-	Close            Action = 7
+	ActionContinue Action = 0
+	ActionPause    Action = 1
 )
 
 // Status
 type Status uint32
 
 const (
-	StatusOK                     Status = 0
-	StatusEmpty                  Status = 1
-	StatusNotFound               Status = 2
-	StatusNotAllowed             Status = 3
-	StatusBadArgument            Status = 4
-	StatusInvalidMemoryAccess    Status = 5
-	StatusInvalidOperation       Status = 6
-	StatusCompareAndSwapMismatch Status = 7
+	StatusOK              Status = 0
+	StatusNotFound        Status = 1
+	StatusBadArgument     Status = 2
+	StatusEmpty           Status = 7
+	StatusCasMismatch     Status = 8
+	StatusInternalFailure Status = 10
+	StatusNeedMoreData    Status = 15
 )
 
 type StreamType uint32
 
 const (
-	Downstream   StreamType = 1
-	Upstream     StreamType = 2
-	HttpRequest  StreamType = 3
-	HttpResponse StreamType = 4
+	StreamTypeRequest  StreamType = 0
+	StreamTypeResponse StreamType = 1
 )
 
 type ContextType uint32
@@ -48,31 +45,32 @@ const (
 type BufferType uint32
 
 const (
-	VmConfiguration         BufferType = 1
-	PluginConfiguration     BufferType = 2
-	DownstreamData          BufferType = 3
-	UpstreamData            BufferType = 4
-	HttpRequestBody         BufferType = 5
-	HttpResponseBody        BufferType = 6
-	HttpCalloutResponseBody BufferType = 7
+	BufferTypeHttpRequestBody      BufferType = 0
+	BufferTypeHttpResponseBody     BufferType = 1
+	BufferTypeDownstreamData       BufferType = 2
+	BufferTypeUpstreamData         BufferType = 3
+	BufferTypeHttpCallResponseBody BufferType = 4
+	BufferTypeGrpcReceiveBuffer    BufferType = 5
+	BufferTypeVMConfiguration      BufferType = 6
+	BufferTypePluginConfiguration  BufferType = 7
+	BufferTypeCallData             BufferType = 8
+	BufferTypeDecodeData           BufferType = 13
+	BufferTypeEncodeData           BufferType = 14
 )
 
 type MapType uint32
 
 const (
-	HttpRequestHeaders       MapType = 1
-	HttpRequestTrailers      MapType = 2
-	HttpRequestMetadata      MapType = 3
-	HttpResponseHeaders      MapType = 4
-	HttpResponseTrailers     MapType = 5
-	HttpResponseMetadata     MapType = 6
-	HttpCallResponseHeaders  MapType = 7
-	HttpCallResponseTrailers MapType = 8
-	HttpCallResponseMetadata MapType = 9
-	RpcRequestHeaders        MapType = 31
-	RpcRequestTrailers       MapType = 32
-	RpcResponseHeaders       MapType = 33
-	RpcResponseTrailers      MapType = 34
+	MapTypeHttpRequestHeaders       MapType = 0
+	MapTypeHttpRequestTrailers      MapType = 1
+	MapTypeHttpResponseHeaders      MapType = 2
+	MapTypeHttpResponseTrailers     MapType = 3
+	MapTypeHttpCallResponseHeaders  MapType = 6
+	MapTypeHttpCallResponseTrailers MapType = 7
+	MapTypeRpcRequestHeaders        MapType = 31
+	MapTypeRpcRequestTrailers       MapType = 32
+	MapTypeRpcResponseHeaders       MapType = 33
+	MapTypeRpcResponseTrailers      MapType = 34
 )
 
 // PeerType
@@ -87,37 +85,42 @@ const (
 type LogLevel uint32
 
 const (
-	LogLevelTrace LogLevel = 1
-	LogLevelDebug LogLevel = 2
-	LogLevelInfo  LogLevel = 3
-	LogLevelWarn  LogLevel = 4
-	LogLevelError LogLevel = 5
-	LogLevelFatal LogLevel = 6
+	LogLevelTrace    LogLevel = 0
+	LogLevelDebug    LogLevel = 1
+	LogLevelInfo     LogLevel = 2
+	LogLevelWarn     LogLevel = 3
+	LogLevelError    LogLevel = 4
+	LogLevelCritical LogLevel = 5
+	LogLevelMax      LogLevel = 6
+	LogLevelFatal    LogLevel = 7
 )
 
 const (
-	trace = "trace"
-	debug = "debug"
-	info  = "info"
-	warn  = "warn"
-	error = "error"
-	fatal = "fatal"
+	traceText    = "trace"
+	debugText    = "debug"
+	infoText     = "info"
+	warnText     = "warn"
+	errorText    = "error"
+	fatalText    = "fatal"
+	criticalText = "critical"
 )
 
 func (level LogLevel) String() string {
 	switch level {
 	case LogLevelTrace:
-		return trace
+		return traceText
 	case LogLevelDebug:
-		return debug
+		return debugText
 	case LogLevelInfo:
-		return info
+		return infoText
 	case LogLevelWarn:
-		return warn
+		return warnText
 	case LogLevelError:
-		return error
+		return errorText
+	case LogLevelCritical:
+		return criticalText
 	case LogLevelFatal:
-		return fatal
+		return fatalText
 	default:
 		panic("unsupported log level")
 	}
@@ -131,3 +134,30 @@ const (
 	StreamContextFilter ExtensionType = 3
 	HttpContextFilter   ExtensionType = 4
 )
+
+var (
+	ErrorStatusNotFound    = errors.New("error status returned by host: not found")
+	ErrorStatusBadArgument = errors.New("error status returned by host: bad argument")
+	ErrorStatusEmpty       = errors.New("error status returned by host: empty")
+	ErrorStatusCasMismatch = errors.New("error status returned by host: cas mismatch")
+	ErrorInternalFailure   = errors.New("error status returned by host: internal failure")
+)
+
+//go:inline
+func StatusToError(status Status) error {
+	switch status {
+	case StatusOK:
+		return nil
+	case StatusNotFound:
+		return ErrorStatusNotFound
+	case StatusBadArgument:
+		return ErrorStatusBadArgument
+	case StatusEmpty:
+		return ErrorStatusEmpty
+	case StatusCasMismatch:
+		return ErrorStatusCasMismatch
+	case StatusInternalFailure:
+		return ErrorInternalFailure
+	}
+	return errors.New("unknown status code: " + strconv.Itoa(int(status)))
+}

@@ -2,27 +2,87 @@ package spec
 
 import "github.com/zonghaishang/proxy-wasm-sdk-go/spec/types"
 
-//export proxy_get_buffer
-func proxyGetBuffer(bt types.BufferType, offset int, maxSize int, buf **byte, len *int) types.Status {
-	return types.StatusOK
-}
-
-//export proxy_set_buffer
-func proxySetBuffer(bt types.BufferType, offset int, maxSize int, buf *byte, len int) types.Status {
-	return types.StatusOK
-}
-
-//export proxy_get_map_values
-func proxyGetMapValues(mt types.MapType, keys *byte, keyCount int, pairs **byte, pairCount *int) types.Status {
-	return types.StatusOK
-}
-
-//export proxy_set_map_values
-func proxySetMapValues(mt types.MapType, removeKeys *byte, removeKeyCount int, pairs **byte, pairCount int) types.Status {
-	return types.StatusOK
-}
-
 //export proxy_log
-func proxyLog(logLevel types.LogLevel, buf *byte, len int) types.Status {
+func ProxyLog(logLevel types.LogLevel, buffer *byte, len int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_get_header_map_value
+func ProxyGetHeaderMapValue(mapType types.MapType, keyData *byte, keySize int, returnValueData **byte, returnValueSize *int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_add_header_map_value
+func ProxyAddHeaderMapValue(mapType types.MapType, keyData *byte, keySize int, valueData *byte, valueSize int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_replace_header_map_value
+func ProxyReplaceHeaderMapValue(mapType types.MapType, keyData *byte, keySize int, valueData *byte, valueSize int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_remove_header_map_value
+func ProxyRemoveHeaderMapValue(mapType types.MapType, keyData *byte, keySize int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_get_header_map_pairs
+func ProxyGetHeaderMapPairs(mapType types.MapType, returnValueData **byte, returnValueSize *int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_set_header_map_pairs
+func ProxySetHeaderMapPairs(mapType types.MapType, mapData *byte, mapSize int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_get_buffer_bytes
+func ProxyGetBufferBytes(bt types.BufferType, start int, maxSize int, returnBufferData **byte, returnBufferSize *int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_set_buffer_bytes
+func ProxySetBufferBytes(bt types.BufferType, start int, maxSize int, bufferData *byte, bufferSize int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_continue_stream
+func ProxyContinueStream(streamType types.StreamType) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_close_stream
+func ProxyCloseStream(streamType types.StreamType) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_set_tick_period_milliseconds
+func ProxySetTickPeriodMilliseconds(period uint32) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_get_current_time_nanoseconds
+func ProxyGetCurrentTimeNanoseconds(returnTime *int64) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_set_effective_context
+func ProxySetEffectiveContext(contextID uint32) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_done
+func ProxyDone() types.Status {
+	return types.StatusOK
+}
+
+//export proxy_get_property
+func ProxyGetProperty(pathData *byte, pathSize int, returnValueData **byte, returnValueSize *int) types.Status {
+	return types.StatusOK
+}
+
+//export proxy_set_property
+func ProxySetProperty(pathData *byte, pathSize int, valueData *byte, valueSize int) types.Status {
 	return types.StatusOK
 }
