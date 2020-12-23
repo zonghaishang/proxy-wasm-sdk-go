@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/spec/types"
 )
 
@@ -15,13 +16,7 @@ type RootContext interface {
 type FilterContext interface {
 	OnDownStreamReceived(headers Header, buffer Buffer, trailers Header) types.Action
 	OnUpstreamReceived(headers Header, buffer Buffer, trailers Header) types.Action
-}
-
-// L7 layer extension
-type HttpContext interface {
-	OnHttpRequestReceived(headers Header, body Buffer) types.Action
-	OnHttpResponseReceived(headers Header, body Buffer) types.Action
-	OnHttpStreamDone()
+	Context() context.Context
 }
 
 // L4 layer extension (host not support now.)
@@ -40,15 +35,15 @@ type ProtocolContext interface {
 
 type (
 	DefaultRootContext   struct{}
-	DefaultFilterContext struct{}
-	DefaultHttpContext   struct{}
+	DefaultFilterContext struct {
+		ctx context.Context
+	}
 	DefaultStreamContext struct{}
 )
 
 var (
 	_ RootContext   = &DefaultRootContext{}
 	_ FilterContext = &DefaultFilterContext{}
-	_ HttpContext   = &DefaultHttpContext{}
 	_ StreamContext = &DefaultStreamContext{}
 )
 
@@ -59,22 +54,20 @@ func (*DefaultRootContext) OnPluginStart(conf ConfigMap) bool { return true }
 func (*DefaultRootContext) OnVMDone() bool                    { return true }
 
 // impl FilterContext
-func (*DefaultFilterContext) OnDownStreamReceived(headers Header, buffer Buffer, trailers Header) types.Action {
+func (c *DefaultFilterContext) OnDownStreamReceived(headers Header, buffer Buffer, trailers Header) types.Action {
 	return types.ActionContinue
 }
 
-func (*DefaultFilterContext) OnUpstreamReceived(headers Header, buffer Buffer, trailers Header) types.Action {
+func (c *DefaultFilterContext) OnUpstreamReceived(headers Header, buffer Buffer, trailers Header) types.Action {
 	return types.ActionContinue
 }
 
-// impl HttpContext
-func (*DefaultHttpContext) OnHttpRequestReceived(headers Header, body Buffer) types.Action {
-	return types.ActionContinue
+func (c *DefaultFilterContext) Context() context.Context {
+	if c.ctx == nil {
+		c.ctx = &internalContext{Context: context.Background()}
+	}
+	return c.ctx
 }
-func (*DefaultHttpContext) OnHttpResponseReceived(headers Header, body Buffer) types.Action {
-	return types.ActionContinue
-}
-func (*DefaultHttpContext) OnHttpStreamDone() {}
 
 // impl StreamContext
 func (*DefaultStreamContext) OnDownstreamData(buffer Buffer, endOfStream bool) types.Action {
@@ -99,4 +92,45 @@ func (*DefaultStreamContext) OnStreamDone() {
 }
 
 func (*DefaultStreamContext) OnLog() {
+}
+
+// context impl
+type ContextKey int
+
+const (
+	ContextKeyStreamID ContextKey = iota
+	ContextKeyListenerType
+	ContextKeyHeaderHolder
+	ContextKeyBufferHolder
+	ContextKeyTrailerHolder
+	ContextKeyEnd
+)
+
+type internalContext struct {
+	context.Context
+	builtin [ContextKeyEnd]interface{}
+}
+
+func (c *internalContext) Value(key interface{}) interface{} {
+	if contextKey, ok := key.(ContextKey); ok {
+		return c.builtin[contextKey]
+	}
+	return c.Context.Value(key)
+}
+
+func Get(ctx context.Context, key ContextKey) interface{} {
+	if context, ok := ctx.(*internalContext); ok {
+		return context.builtin[key]
+	}
+	return ctx.Value(key)
+}
+
+func WithValue(parent context.Context, key ContextKey, value interface{}) context.Context {
+	if context, ok := parent.(*internalContext); ok {
+		context.builtin[key] = value
+		return context
+	}
+	context := &internalContext{Context: parent}
+	context.builtin[key] = value
+	return context
 }

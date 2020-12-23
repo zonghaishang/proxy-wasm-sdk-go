@@ -29,5 +29,4 @@ func TestDecodeMap(t *testing.T) {
 	if val, ok := decoded["hello"]; !ok || val != "world" {
 		t.Errorf("expect value 'world' for key 'hello', actual '%s'", val)
 	}
-
 }
