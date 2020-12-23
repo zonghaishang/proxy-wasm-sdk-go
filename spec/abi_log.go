@@ -53,3 +53,19 @@ func (p *proxyLogger) Fatalf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 	ProxyLog(types.LogLevelFatal, stringBytePtr(msg), len(msg))
 }
+
+//export proxy_on_log
+func proxyOnLog(contextID uint32) {
+	if ctx, ok := this.streams[contextID]; ok {
+		this.setActiveContextID(contextID)
+		ctx.OnLog()
+	} else if ctx, ok := this.filterStreams[contextID]; ok {
+		this.setActiveContextID(contextID)
+		ctx.OnLog()
+	} else if ctx, ok := this.rootContexts[contextID]; ok {
+		this.setActiveContextID(contextID)
+		ctx.context.OnLog()
+	} else {
+		panic("invalid context on proxy_on_done")
+	}
+}

@@ -10,6 +10,7 @@ type RootContext interface {
 	OnPluginStart(conf ConfigMap) bool
 	OnTick()
 	OnVMDone() bool
+	OnLog()
 }
 
 // L7 layer extension
@@ -22,6 +23,8 @@ type FilterContext interface {
 	OnUpstreamReceived(headers Header, buffer Buffer, trailers Header) types.Action
 	// Context Used to save and pass data during a session
 	Context() context.Context
+	OnFilterStreamDone()
+	OnLog()
 }
 
 // L4 layer extension (host not support now.)
@@ -57,6 +60,8 @@ func (*DefaultRootContext) OnTick()                           {}
 func (*DefaultRootContext) OnVMStart(conf ConfigMap) bool     { return true }
 func (*DefaultRootContext) OnPluginStart(conf ConfigMap) bool { return true }
 func (*DefaultRootContext) OnVMDone() bool                    { return true }
+func (*DefaultRootContext) OnLog() {
+}
 
 // impl FilterContext
 func (c *DefaultFilterContext) OnDownStreamReceived(headers Header, buffer Buffer, trailers Header) types.Action {
@@ -72,6 +77,11 @@ func (c *DefaultFilterContext) Context() context.Context {
 		c.ctx = &internalContext{Context: context.Background()}
 	}
 	return c.ctx
+}
+
+func (*DefaultFilterContext) OnFilterStreamDone() {}
+
+func (*DefaultFilterContext) OnLog() {
 }
 
 // impl StreamContext
