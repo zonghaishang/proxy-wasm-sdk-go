@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"context"
-	"github.com/zonghaishang/proxy-wasm-sdk-go/spec/types"
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 )
 
 type RootContext interface {
@@ -107,45 +107,4 @@ func (*DefaultStreamContext) OnStreamDone() {
 }
 
 func (*DefaultStreamContext) OnLog() {
-}
-
-// context impl
-type ContextKey int
-
-const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyListenerType
-	ContextKeyHeaderHolder
-	ContextKeyBufferHolder
-	ContextKeyTrailerHolder
-	ContextKeyEnd
-)
-
-type internalContext struct {
-	context.Context
-	values [ContextKeyEnd]interface{}
-}
-
-func (c *internalContext) Value(key interface{}) interface{} {
-	if contextKey, ok := key.(ContextKey); ok {
-		return c.values[contextKey]
-	}
-	return c.Context.Value(key)
-}
-
-func Get(ctx context.Context, key ContextKey) interface{} {
-	if context, ok := ctx.(*internalContext); ok {
-		return context.values[key]
-	}
-	return ctx.Value(key)
-}
-
-func WithValue(parent context.Context, key ContextKey, value interface{}) context.Context {
-	if context, ok := parent.(*internalContext); ok {
-		context.values[key] = value
-		return context
-	}
-	context := &internalContext{Context: parent}
-	context.values[key] = value
-	return context
 }

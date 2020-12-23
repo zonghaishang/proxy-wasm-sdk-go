@@ -1,4 +1,4 @@
-package spec
+package proxy
 
 //export proxy_on_tick
 func proxyOnTick(rootContextID uint32) {

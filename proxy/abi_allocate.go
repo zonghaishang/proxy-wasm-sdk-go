@@ -1,4 +1,4 @@
-package spec
+package proxy
 
 //nolint
 //export proxy_on_memory_allocate

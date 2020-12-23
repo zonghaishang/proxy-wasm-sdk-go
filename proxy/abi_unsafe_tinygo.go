@@ -1,13 +1,13 @@
 // How to use conditional compilation with the go build tool:
 // https://dave.cheney.net/2013/10/12/how-to-use-conditional-compilation-with-the-go-build-tool
 
-// +build tiny_go
+// +build !proxytest
 
 // since the difference of the types in SliceHeader.{Len, Cap} between tiny-go and go,
 // we have to have separated functions for converting bytes.
 // issue: https://github.com/tinygo-org/tinygo/issues/1284
 
-package spec
+package proxy
 
 import (
 	"reflect"

@@ -1,12 +1,10 @@
-package spec
-
-import "github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
+package proxy
 
 type (
-	HttpCalloutCallBack = func(headers proxy.Header, body proxy.Buffer)
+	HttpCalloutCallBack = func(headers Header, body Buffer)
 
 	rootContextState struct {
-		context       proxy.RootContext
+		context       RootContext
 		httpCallbacks map[uint32]*struct {
 			callback        HttpCalloutCallBack
 			callerContextID uint32
@@ -15,12 +13,12 @@ type (
 )
 
 type state struct {
-	newRootContext   func(contextID uint32) proxy.RootContext
+	newRootContext   func(contextID uint32) RootContext
 	rootContexts     map[uint32]*rootContextState
-	newFilterContext func(rootContextID, contextID uint32) proxy.FilterContext
-	filterStreams    map[uint32]proxy.FilterContext
-	newStreamContext func(rootContextID, contextID uint32) proxy.StreamContext
-	streams          map[uint32]proxy.StreamContext
+	newFilterContext func(rootContextID, contextID uint32) FilterContext
+	filterStreams    map[uint32]FilterContext
+	newStreamContext func(rootContextID, contextID uint32) StreamContext
+	streams          map[uint32]StreamContext
 
 	// protocol context
 
@@ -30,28 +28,28 @@ type state struct {
 
 var this = &state{
 	rootContexts:      make(map[uint32]*rootContextState),
-	filterStreams:     make(map[uint32]proxy.FilterContext),
-	streams:           make(map[uint32]proxy.StreamContext),
+	filterStreams:     make(map[uint32]FilterContext),
+	streams:           make(map[uint32]StreamContext),
 	contextIDToRootID: make(map[uint32]uint32),
 }
 
-func SetNewRootContext(f func(contextID uint32) proxy.RootContext) {
+func SetNewRootContext(f func(contextID uint32) RootContext) {
 	this.newRootContext = f
 }
 
-func SetNewFilterContext(f func(rootContextID, contextID uint32) proxy.FilterContext) {
+func SetNewFilterContext(f func(rootContextID, contextID uint32) FilterContext) {
 	this.newFilterContext = f
 }
 
-func SetNewStreamContext(f func(rootContextID, contextID uint32) proxy.StreamContext) {
+func SetNewStreamContext(f func(rootContextID, contextID uint32) StreamContext) {
 	this.newStreamContext = f
 }
 
 //go:inline
 func (s *state) createRootContext(contextID uint32) {
-	var ctx proxy.RootContext
+	var ctx RootContext
 	if s.newRootContext == nil {
-		ctx = &proxy.DefaultRootContext{}
+		ctx = &DefaultRootContext{}
 	} else {
 		ctx = s.newRootContext(contextID)
 	}

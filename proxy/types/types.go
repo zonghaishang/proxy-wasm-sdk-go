@@ -161,3 +161,15 @@ func StatusToError(status Status) error {
 	}
 	return errors.New("unknown status code: " + strconv.Itoa(int(status)))
 }
+
+// context impl
+type ContextKey int
+
+const (
+	ContextKeyStreamID ContextKey = iota
+	ContextKeyListenerType
+	ContextKeyHeaderHolder
+	ContextKeyBufferHolder
+	ContextKeyTrailerHolder
+	ContextKeyEnd
+)

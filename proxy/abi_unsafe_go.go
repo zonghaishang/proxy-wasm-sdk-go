@@ -1,9 +1,9 @@
 // How to use conditional compilation with the go build tool:
 // https://dave.cheney.net/2013/10/12/how-to-use-conditional-compilation-with-the-go-build-tool
 
-// +build !tiny_go
+// +build proxytest
 
-package spec
+package proxy
 
 import (
 	"reflect"

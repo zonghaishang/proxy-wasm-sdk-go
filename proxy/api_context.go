@@ -1,4 +1,9 @@
-package spec
+package proxy
+
+import (
+	"context"
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
+)
 
 //export proxy_on_context_create
 func proxyOnContextCreate(contextID uint32, rootContextID uint32) {
@@ -44,4 +49,33 @@ func proxyOnDelete(contextID uint32) {
 		panic("invalid context on proxy_on_done")
 	}
 	delete(this.contextIDToRootID, contextID)
+}
+
+type internalContext struct {
+	context.Context
+	values [types.ContextKeyEnd]interface{}
+}
+
+func (c *internalContext) Value(key interface{}) interface{} {
+	if contextKey, ok := key.(types.ContextKey); ok {
+		return c.values[contextKey]
+	}
+	return c.Context.Value(key)
+}
+
+func Get(ctx context.Context, key types.ContextKey) interface{} {
+	if context, ok := ctx.(*internalContext); ok {
+		return context.values[key]
+	}
+	return ctx.Value(key)
+}
+
+func WithValue(parent context.Context, key types.ContextKey, value interface{}) context.Context {
+	if context, ok := parent.(*internalContext); ok {
+		context.values[key] = value
+		return context
+	}
+	context := &internalContext{Context: parent}
+	context.values[key] = value
+	return context
 }

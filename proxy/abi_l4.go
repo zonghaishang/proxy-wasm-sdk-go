@@ -1,8 +1,7 @@
-package spec
+package proxy
 
 import (
-	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
-	"github.com/zonghaishang/proxy-wasm-sdk-go/spec/types"
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 )
 
 //export proxy_on_new_connection
@@ -27,13 +26,13 @@ func proxyOnDownstreamData(contextID uint32, dataSize int, endOfStream bool) typ
 		return types.ActionContinue
 	}
 
-	data, err := GetDownStreamData(0, dataSize)
+	data, err := getDownStreamData(0, dataSize)
 	if err != nil && err != types.ErrorStatusNotFound {
 		log.Errorf("failed to get downstream data: %v", err)
 		return types.ActionContinue
 	}
 
-	return ctx.OnDownstreamData(proxy.Allocate(data), endOfStream)
+	return ctx.OnDownstreamData(Allocate(data), endOfStream)
 }
 
 //export proxy_on_downstream_connection_close
@@ -58,13 +57,13 @@ func proxyOnUpstreamData(contextID uint32, dataSize int, endOfStream bool) types
 		return types.ActionContinue
 	}
 
-	data, err := GetUpstreamData(0, dataSize)
+	data, err := getUpstreamData(0, dataSize)
 	if err != nil && err != types.ErrorStatusNotFound {
 		log.Errorf("failed to get upstream data: %v", err)
 		return types.ActionContinue
 	}
 
-	return ctx.OnUpstreamData(proxy.Allocate(data), endOfStream)
+	return ctx.OnUpstreamData(Allocate(data), endOfStream)
 }
 
 //export proxy_on_upstream_connection_close

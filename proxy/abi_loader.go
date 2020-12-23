@@ -1,17 +1,17 @@
-package spec
+package proxy
 
 import (
-	"github.com/zonghaishang/proxy-wasm-sdk-go/spec/types"
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 	"sync"
 )
 
 type loader struct {
 	data map[types.ExtensionType]*Node
-	mu   sync.RWMutex // protect data spec
+	mu   sync.RWMutex // protect data proxy
 }
 
-// Register register extension loader
-func (m *loader) Register(eType types.ExtensionType, node *Node) {
+// register register extension loader
+func (m *loader) register(eType types.ExtensionType, node *Node) {
 	m.mu.Lock()
 
 	if m.data == nil {
@@ -77,8 +77,8 @@ func (m *loader) Register(eType types.ExtensionType, node *Node) {
 	m.mu.Unlock()
 }
 
-// Find find extension instances.
-func (m *loader) Find(eType types.ExtensionType, name string) (node *Node, matched bool) {
+// find find extension instances.
+func (m *loader) find(eType types.ExtensionType, name string) (node *Node, matched bool) {
 	// we found nothing
 	if m.data == nil {
 		return nil, false
@@ -122,8 +122,8 @@ func (m *loader) Find(eType types.ExtensionType, name string) (node *Node, match
 	return found, count == 1
 }
 
-// Clear all cache data
-func (m *loader) Clear() {
+// clear all cache data
+func (m *loader) clear() {
 	m.mu.Lock()
 	// help for gc
 	m.data = nil

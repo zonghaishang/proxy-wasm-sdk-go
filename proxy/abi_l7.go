@@ -1,8 +1,7 @@
-package spec
+package proxy
 
 import (
-	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
-	"github.com/zonghaishang/proxy-wasm-sdk-go/spec/types"
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 )
 
 //export proxy_on_request_headers
@@ -13,20 +12,20 @@ func proxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) t
 	}
 	this.setActiveContextID(contextID)
 
-	var header proxy.Header
+	var header Header
 	if numHeaders > 0 {
-		hs, err := GetHttpRequestHeaders()
+		hs, err := getHttpRequestHeaders()
 		if err != nil {
 			log.Errorf("failed to get request headers: %v", err)
 			return types.ActionContinue
 		}
-		header = proxy.CommonHeader(hs)
+		header = CommonHeader(hs)
 		// update context header
-		proxy.WithValue(ctx.Context(), proxy.ContextKeyHeaderHolder, header)
+		WithValue(ctx.Context(), ContextKeyHeaderHolder, header)
 	}
 
 	if endOfStream {
-		return ctx.OnDownStreamReceived(header, proxy.NewBuffer(0), nil)
+		return ctx.OnDownStreamReceived(header, NewBuffer(0), nil)
 	}
 
 	return types.ActionContinue
@@ -40,22 +39,22 @@ func proxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.
 	}
 	this.setActiveContextID(contextID)
 
-	var body proxy.Buffer
+	var body Buffer
 	if bodySize > 0 {
-		bodyBytes, err := GetHttpRequestBody(0, bodySize)
+		bodyBytes, err := getHttpRequestBody(0, bodySize)
 		if err != nil {
 			log.Errorf("failed to get request body: %v", err)
 			return types.ActionContinue
 		}
 
-		body = proxy.Allocate(bodyBytes)
+		body = Allocate(bodyBytes)
 		// update context body buffer
-		proxy.WithValue(ctx.Context(), proxy.ContextKeyBufferHolder, body)
+		WithValue(ctx.Context(), ContextKeyBufferHolder, body)
 	}
 
 	if endOfStream {
-		header := proxy.Get(ctx.Context(), proxy.ContextKeyHeaderHolder)
-		return ctx.OnDownStreamReceived(header.(proxy.Header), body, nil)
+		header := Get(ctx.Context(), ContextKeyHeaderHolder)
+		return ctx.OnDownStreamReceived(header.(Header), body, nil)
 	}
 
 	return types.ActionContinue
@@ -69,22 +68,22 @@ func proxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
 	}
 	this.setActiveContextID(contextID)
 
-	var trailer proxy.Header
+	var trailer Header
 	if numTrailers > 0 {
-		trailers, err := GetHttpRequestTrailers()
+		trailers, err := getHttpRequestTrailers()
 		if err != nil {
 			log.Errorf("failed to get request trailer: %v", err)
 			return types.ActionContinue
 		}
-		trailer = proxy.CommonHeader(trailers)
+		trailer = CommonHeader(trailers)
 		// update context header
-		proxy.WithValue(ctx.Context(), proxy.ContextKeyTrailerHolder, trailer)
+		WithValue(ctx.Context(), ContextKeyTrailerHolder, trailer)
 	}
 
-	header := proxy.Get(ctx.Context(), proxy.ContextKeyHeaderHolder)
-	body := proxy.Get(ctx.Context(), proxy.ContextKeyBufferHolder)
+	header := Get(ctx.Context(), ContextKeyHeaderHolder)
+	body := Get(ctx.Context(), ContextKeyBufferHolder)
 
-	return ctx.OnDownStreamReceived(header.(proxy.Header), body.(proxy.Buffer), trailer)
+	return ctx.OnDownStreamReceived(header.(Header), body.(Buffer), trailer)
 }
 
 //export proxy_on_response_headers
@@ -95,20 +94,20 @@ func proxyOnResponseHeaders(contextID uint32, numHeaders int, endOfStream bool) 
 	}
 	this.setActiveContextID(contextID)
 
-	var header proxy.Header
+	var header Header
 	if numHeaders > 0 {
-		hs, err := GetHttpResponseHeaders()
+		hs, err := getHttpResponseHeaders()
 		if err != nil {
 			log.Errorf("failed to get response headers: %v", err)
 			return types.ActionContinue
 		}
-		header = proxy.CommonHeader(hs)
+		header = CommonHeader(hs)
 		// update context header
-		proxy.WithValue(ctx.Context(), proxy.ContextKeyHeaderHolder, header)
+		WithValue(ctx.Context(), ContextKeyHeaderHolder, header)
 	}
 
 	if endOfStream {
-		return ctx.OnUpstreamReceived(header, proxy.NewBuffer(0), nil)
+		return ctx.OnUpstreamReceived(header, NewBuffer(0), nil)
 	}
 
 	return types.ActionContinue
@@ -122,22 +121,22 @@ func proxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types
 	}
 	this.setActiveContextID(contextID)
 
-	var body proxy.Buffer
+	var body Buffer
 	if bodySize > 0 {
-		bodyBytes, err := GetHttpResponseBody(0, bodySize)
+		bodyBytes, err := getHttpResponseBody(0, bodySize)
 		if err != nil {
 			log.Errorf("failed to get response body: %v", err)
 			return types.ActionContinue
 		}
 
-		body = proxy.Allocate(bodyBytes)
+		body = Allocate(bodyBytes)
 		// update context body buffer
-		proxy.WithValue(ctx.Context(), proxy.ContextKeyBufferHolder, body)
+		WithValue(ctx.Context(), ContextKeyBufferHolder, body)
 	}
 
 	if endOfStream {
-		header := proxy.Get(ctx.Context(), proxy.ContextKeyHeaderHolder)
-		return ctx.OnUpstreamReceived(header.(proxy.Header), body, nil)
+		header := Get(ctx.Context(), ContextKeyHeaderHolder)
+		return ctx.OnUpstreamReceived(header.(Header), body, nil)
 	}
 
 	return types.ActionContinue
@@ -150,20 +149,20 @@ func proxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
 		panic("invalid context id on proxy_on_response_headers")
 	}
 	this.setActiveContextID(contextID)
-	var trailer proxy.Header
+	var trailer Header
 	if numTrailers > 0 {
-		trailers, err := GetHttpResponseTrailers()
+		trailers, err := getHttpResponseTrailers()
 		if err != nil {
 			log.Errorf("failed to get request trailer: %v", err)
 			return types.ActionContinue
 		}
-		trailer = proxy.CommonHeader(trailers)
+		trailer = CommonHeader(trailers)
 		// update context header
-		proxy.WithValue(ctx.Context(), proxy.ContextKeyTrailerHolder, trailer)
+		WithValue(ctx.Context(), ContextKeyTrailerHolder, trailer)
 	}
 
-	header := proxy.Get(ctx.Context(), proxy.ContextKeyHeaderHolder)
-	body := proxy.Get(ctx.Context(), proxy.ContextKeyBufferHolder)
+	header := Get(ctx.Context(), ContextKeyHeaderHolder)
+	body := Get(ctx.Context(), ContextKeyBufferHolder)
 
-	return ctx.OnUpstreamReceived(header.(proxy.Header), body.(proxy.Buffer), trailer)
+	return ctx.OnUpstreamReceived(header.(Header), body.(Buffer), trailer)
 }

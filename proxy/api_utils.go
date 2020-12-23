@@ -1,4 +1,4 @@
-package spec
+package proxy
 
 import "encoding/binary"
 
