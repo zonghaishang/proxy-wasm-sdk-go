@@ -14,8 +14,13 @@ type RootContext interface {
 
 // L7 layer extension
 type FilterContext interface {
+	// OnDownStreamReceived Called when the data requests,
+	// The caller should check if the parameter value is nil
 	OnDownStreamReceived(headers Header, buffer Buffer, trailers Header) types.Action
+	// OnUpstreamReceived Called when the data responds,
+	// The caller should check if the parameter value is nil
 	OnUpstreamReceived(headers Header, buffer Buffer, trailers Header) types.Action
+	// Context Used to save and pass data during a session
 	Context() context.Context
 }
 
@@ -108,29 +113,29 @@ const (
 
 type internalContext struct {
 	context.Context
-	builtin [ContextKeyEnd]interface{}
+	values [ContextKeyEnd]interface{}
 }
 
 func (c *internalContext) Value(key interface{}) interface{} {
 	if contextKey, ok := key.(ContextKey); ok {
-		return c.builtin[contextKey]
+		return c.values[contextKey]
 	}
 	return c.Context.Value(key)
 }
 
 func Get(ctx context.Context, key ContextKey) interface{} {
 	if context, ok := ctx.(*internalContext); ok {
-		return context.builtin[key]
+		return context.values[key]
 	}
 	return ctx.Value(key)
 }
 
 func WithValue(parent context.Context, key ContextKey, value interface{}) context.Context {
 	if context, ok := parent.(*internalContext); ok {
-		context.builtin[key] = value
+		context.values[key] = value
 		return context
 	}
 	context := &internalContext{Context: parent}
-	context.builtin[key] = value
+	context.values[key] = value
 	return context
 }
