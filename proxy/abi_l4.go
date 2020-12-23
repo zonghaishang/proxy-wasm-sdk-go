@@ -1,8 +1,6 @@
 package proxy
 
-import (
-	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
-)
+import "github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 
 //export proxy_on_new_connection
 func proxyOnNewConnection(contextID uint32) types.Action {

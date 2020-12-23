@@ -1,8 +1,6 @@
 package proxy
 
-import (
-	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
-)
+import "github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 
 //export proxy_on_request_headers
 func proxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) types.Action {
@@ -21,7 +19,7 @@ func proxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) t
 		}
 		header = CommonHeader(hs)
 		// update context header
-		WithValue(ctx.Context(), ContextKeyHeaderHolder, header)
+		WithValue(ctx.Context(), types.ContextKeyHeaderHolder, header)
 	}
 
 	if endOfStream {
@@ -49,11 +47,11 @@ func proxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.
 
 		body = Allocate(bodyBytes)
 		// update context body buffer
-		WithValue(ctx.Context(), ContextKeyBufferHolder, body)
+		WithValue(ctx.Context(), types.ContextKeyBufferHolder, body)
 	}
 
 	if endOfStream {
-		header := Get(ctx.Context(), ContextKeyHeaderHolder)
+		header := Get(ctx.Context(), types.ContextKeyHeaderHolder)
 		return ctx.OnDownStreamReceived(header.(Header), body, nil)
 	}
 
@@ -77,11 +75,11 @@ func proxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
 		}
 		trailer = CommonHeader(trailers)
 		// update context header
-		WithValue(ctx.Context(), ContextKeyTrailerHolder, trailer)
+		WithValue(ctx.Context(), types.ContextKeyTrailerHolder, trailer)
 	}
 
-	header := Get(ctx.Context(), ContextKeyHeaderHolder)
-	body := Get(ctx.Context(), ContextKeyBufferHolder)
+	header := Get(ctx.Context(), types.ContextKeyHeaderHolder)
+	body := Get(ctx.Context(), types.ContextKeyBufferHolder)
 
 	return ctx.OnDownStreamReceived(header.(Header), body.(Buffer), trailer)
 }
@@ -103,7 +101,7 @@ func proxyOnResponseHeaders(contextID uint32, numHeaders int, endOfStream bool) 
 		}
 		header = CommonHeader(hs)
 		// update context header
-		WithValue(ctx.Context(), ContextKeyHeaderHolder, header)
+		WithValue(ctx.Context(), types.ContextKeyHeaderHolder, header)
 	}
 
 	if endOfStream {
@@ -131,11 +129,11 @@ func proxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types
 
 		body = Allocate(bodyBytes)
 		// update context body buffer
-		WithValue(ctx.Context(), ContextKeyBufferHolder, body)
+		WithValue(ctx.Context(), types.ContextKeyBufferHolder, body)
 	}
 
 	if endOfStream {
-		header := Get(ctx.Context(), ContextKeyHeaderHolder)
+		header := Get(ctx.Context(), types.ContextKeyHeaderHolder)
 		return ctx.OnUpstreamReceived(header.(Header), body, nil)
 	}
 
@@ -158,11 +156,11 @@ func proxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
 		}
 		trailer = CommonHeader(trailers)
 		// update context header
-		WithValue(ctx.Context(), ContextKeyTrailerHolder, trailer)
+		WithValue(ctx.Context(), types.ContextKeyTrailerHolder, trailer)
 	}
 
-	header := Get(ctx.Context(), ContextKeyHeaderHolder)
-	body := Get(ctx.Context(), ContextKeyBufferHolder)
+	header := Get(ctx.Context(), types.ContextKeyHeaderHolder)
+	body := Get(ctx.Context(), types.ContextKeyBufferHolder)
 
 	return ctx.OnUpstreamReceived(header.(Header), body.(Buffer), trailer)
 }
