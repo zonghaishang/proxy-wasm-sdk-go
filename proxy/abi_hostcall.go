@@ -1,6 +1,9 @@
 package proxy
 
-import "github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
+import (
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/syscall"
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
+)
 
 func getPluginConfiguration(size int) ([]byte, error) {
 	buf, status := getBuffer(types.BufferTypePluginConfiguration, 0, size)
@@ -13,7 +16,7 @@ func getVMConfiguration(size int) ([]byte, error) {
 }
 
 func SetTickPeriodMilliSeconds(millSec uint32) error {
-	return types.StatusToError(ABI_ProxySetTickPeriodMilliseconds(millSec))
+	return types.StatusToError(syscall.ProxySetTickPeriodMilliseconds(millSec))
 }
 
 func getDownStreamData(start, maxSize int) ([]byte, error) {
@@ -62,7 +65,7 @@ func setHttpRequestBody(body []byte) error {
 	if len(body) != 0 {
 		buff = &body[0]
 	}
-	status := ABI_ProxySetBufferBytes(types.BufferTypeHttpRequestBody, 0, len(body), buff, len(body))
+	status := syscall.ProxySetBufferBytes(types.BufferTypeHttpRequestBody, 0, len(body), buff, len(body))
 	return types.StatusToError(status)
 }
 
@@ -93,7 +96,7 @@ func addHttpRequestTrailer(key, value string) error {
 }
 
 func resumeHttpRequest() error {
-	return types.StatusToError(ABI_ProxyContinueStream(types.StreamTypeRequest))
+	return types.StatusToError(syscall.ProxyContinueStream(types.StreamTypeRequest))
 }
 
 func getHttpResponseHeaders() (map[string]string, error) {
@@ -132,7 +135,7 @@ func setHttpResponseBody(body []byte) error {
 	if len(body) != 0 {
 		buf = &body[0]
 	}
-	st := ABI_ProxySetBufferBytes(types.BufferTypeHttpResponseBody, 0, len(body), buf, len(body))
+	st := syscall.ProxySetBufferBytes(types.BufferTypeHttpResponseBody, 0, len(body), buf, len(body))
 	return types.StatusToError(st)
 }
 
@@ -163,7 +166,7 @@ func addHttpResponseTrailer(key, value string) error {
 }
 
 func resumeHttpResponse() error {
-	return types.StatusToError(ABI_ProxyContinueStream(types.StreamTypeResponse))
+	return types.StatusToError(syscall.ProxyContinueStream(types.StreamTypeResponse))
 }
 
 func getProperty(path []string) ([]byte, error) {
@@ -171,7 +174,7 @@ func getProperty(path []string) ([]byte, error) {
 	var retSize int
 	raw := EncodePropertyPath(path)
 
-	err := types.StatusToError(ABI_ProxyGetProperty(&raw[0], len(raw), &ret, &retSize))
+	err := types.StatusToError(syscall.ProxyGetProperty(&raw[0], len(raw), &ret, &retSize))
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +183,7 @@ func getProperty(path []string) ([]byte, error) {
 }
 
 func setProperty(path string, data []byte) error {
-	return types.StatusToError(ABI_ProxySetProperty(
+	return types.StatusToError(syscall.ProxySetProperty(
 		stringBytePtr(path), len(path), &data[0], len(data),
 	))
 }
@@ -189,13 +192,13 @@ func setMap(mapType types.MapType, headers map[string]string) types.Status {
 	encodedBytes := EncodeMap(headers)
 	hp := &encodedBytes[0]
 	hl := len(encodedBytes)
-	return ABI_ProxySetHeaderMapPairs(mapType, hp, hl)
+	return syscall.ProxySetHeaderMapPairs(mapType, hp, hl)
 }
 
 func getMapValue(mapType types.MapType, key string) (string, types.Status) {
 	var rvs int
 	var raw *byte
-	if st := ABI_ProxyGetHeaderMapValue(mapType, stringBytePtr(key), len(key), &raw, &rvs); st != types.StatusOK {
+	if st := syscall.ProxyGetHeaderMapValue(mapType, stringBytePtr(key), len(key), &raw, &rvs); st != types.StatusOK {
 		return "", st
 	}
 
@@ -204,22 +207,22 @@ func getMapValue(mapType types.MapType, key string) (string, types.Status) {
 }
 
 func removeMapValue(mapType types.MapType, key string) types.Status {
-	return ABI_ProxyRemoveHeaderMapValue(mapType, stringBytePtr(key), len(key))
+	return syscall.ProxyRemoveHeaderMapValue(mapType, stringBytePtr(key), len(key))
 }
 
 func setMapValue(mapType types.MapType, key, value string) types.Status {
-	return ABI_ProxyReplaceHeaderMapValue(mapType, stringBytePtr(key), len(key), stringBytePtr(value), len(value))
+	return syscall.ProxyReplaceHeaderMapValue(mapType, stringBytePtr(key), len(key), stringBytePtr(value), len(value))
 }
 
 func addMapValue(mapType types.MapType, key, value string) types.Status {
-	return ABI_ProxyAddHeaderMapValue(mapType, stringBytePtr(key), len(key), stringBytePtr(value), len(value))
+	return syscall.ProxyAddHeaderMapValue(mapType, stringBytePtr(key), len(key), stringBytePtr(value), len(value))
 }
 
 func getMap(mapType types.MapType) (map[string]string, types.Status) {
 	var rvs int
 	var raw *byte
 
-	status := ABI_ProxyGetHeaderMapPairs(mapType, &raw, &rvs)
+	status := syscall.ProxyGetHeaderMapPairs(mapType, &raw, &rvs)
 	if status != types.StatusOK {
 		return nil, status
 	}
@@ -231,7 +234,7 @@ func getMap(mapType types.MapType) (map[string]string, types.Status) {
 func getBuffer(bufType types.BufferType, start, maxSize int) ([]byte, types.Status) {
 	var buffer *byte
 	var len int
-	switch status := ABI_ProxyGetBufferBytes(bufType, start, maxSize, &buffer, &len); status {
+	switch status := syscall.ProxyGetBufferBytes(bufType, start, maxSize, &buffer, &len); status {
 	case types.StatusOK:
 		// is this correct handling...?
 		if buffer == nil {
