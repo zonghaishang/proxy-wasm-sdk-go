@@ -1,5 +1,9 @@
 package proxy
 
+import (
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
+)
+
 type Codec interface {
 	Decode(data Buffer) (Command, error)
 	Encode(message Command) (Buffer, error)
@@ -44,4 +48,26 @@ type KeepAlive interface {
 type Hijacker interface {
 	// Hijack allows sidecar to hijack requests
 	Hijack(request Request, code uint32) Response
+}
+
+// Options Features required for a particular host
+type Options interface {
+	// default Multiplex
+	PoolMode() types.PoolMode
+	// same meaning as EnableWorkerPool in types.StreamConnection
+	EnableWorkerPool() bool
+	// generate a request id for stream to combine stream request && response
+	// use connection param as base
+	// GenerateRequestID(*uint64) uint64
+}
+
+type DefaultOptions struct {
+}
+
+func (o *DefaultOptions) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+func (o *DefaultOptions) EnableWorkerPool() bool {
+	return true
 }

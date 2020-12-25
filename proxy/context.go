@@ -33,6 +33,7 @@ type ProtocolContext interface {
 	Codec() Codec         // frame encode & decode
 	KeepAlive() KeepAlive // protocol keep alive
 	Hijacker() Hijacker   // protocol hijacker
+	Options() Options     // protocol options
 }
 
 // L4 layer extension (host not support now.)
