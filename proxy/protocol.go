@@ -55,11 +55,13 @@ type Hijacker interface {
 type Options interface {
 	// default Multiplex
 	PoolMode() types.PoolMode
-	// same meaning as EnableWorkerPool in types.StreamConnection
+	// EnableWorkerPool same meaning as EnableWorkerPool in types.StreamConnection
 	EnableWorkerPool() bool
-	// generate a request id for stream to combine stream request && response
-	// use connection param as base
+	// EnableGenerateRequestID check if the protocol requires custom streamId.
+	// If need to generate, you should override the GenerateRequestID method implementation
 	EnableGenerateRequestID() bool
+	// GenerateRequestID generate a request id for stream to combine stream request && response
+	// use connection param as base
 	GenerateRequestID(*uint64) uint64
 }
 
