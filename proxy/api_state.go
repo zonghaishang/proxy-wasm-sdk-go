@@ -76,7 +76,7 @@ func (s *state) createFilterContext(contextID uint32, rootContextID uint32) {
 	}
 
 	if _, ok := s.filterStreams[contextID]; ok {
-		panic("context id duplicated")
+		panic("filter context id duplicated")
 	}
 
 	ctx := s.newFilterContext(rootContextID, contextID)
@@ -89,8 +89,8 @@ func (s *state) createProtocolContext(contextID uint32, rootContextID uint32) {
 		panic("invalid root context id")
 	}
 
-	if _, ok := s.filterStreams[contextID]; ok {
-		panic("context id duplicated")
+	if _, ok := s.protocolStreams[contextID]; ok {
+		panic("protocol context id duplicated")
 	}
 
 	ctx := s.newProtocolContext(rootContextID, contextID)

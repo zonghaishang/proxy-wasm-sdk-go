@@ -82,6 +82,7 @@ type Buffer interface {
 	Bytes() []byte
 	Len() int
 	Cap() int
+	Pos() int
 	Grow(n int)
 	Reset()
 	Peek(n int) []byte
@@ -581,6 +582,10 @@ func (b *byteBuffer) GetInt64(i int) (int64, error) {
 
 	v := b.byteOrder.Uint64(b.buf[i:])
 	return int64(v), nil
+}
+
+func (b *byteBuffer) Pos() int {
+	return b.pos
 }
 
 // ======================== private method impl ========================
