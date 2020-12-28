@@ -10,7 +10,9 @@ func proxyOnContextCreate(contextID uint32, rootContextID uint32) {
 	if rootContextID == 0 {
 		this.createRootContext(contextID)
 	} else if this.newFilterContext != nil {
-		this.newFilterContext(contextID, rootContextID)
+		this.createFilterContext(contextID, rootContextID)
+	} else if this.newProtocolContext != nil {
+		this.createProtocolContext(contextID, rootContextID)
 	} else if this.newStreamContext != nil {
 		this.createStreamContext(contextID, rootContextID)
 	} else {

@@ -13,12 +13,14 @@ type (
 )
 
 type state struct {
-	newRootContext   func(contextID uint32) RootContext
-	rootContexts     map[uint32]*rootContextState
-	newFilterContext func(rootContextID, contextID uint32) FilterContext
-	filterStreams    map[uint32]FilterContext
-	newStreamContext func(rootContextID, contextID uint32) StreamContext
-	streams          map[uint32]StreamContext
+	newRootContext     func(contextID uint32) RootContext
+	rootContexts       map[uint32]*rootContextState
+	newFilterContext   func(rootContextID, contextID uint32) FilterContext
+	filterStreams      map[uint32]FilterContext
+	newProtocolContext func(rootContextID, contextID uint32) ProtocolContext
+	protocolStreams    map[uint32]ProtocolContext
+	newStreamContext   func(rootContextID, contextID uint32) StreamContext
+	streams            map[uint32]StreamContext
 
 	// protocol context
 
@@ -29,6 +31,7 @@ type state struct {
 var this = &state{
 	rootContexts:      make(map[uint32]*rootContextState),
 	filterStreams:     make(map[uint32]FilterContext),
+	protocolStreams:   make(map[uint32]ProtocolContext),
 	streams:           make(map[uint32]StreamContext),
 	contextIDToRootID: make(map[uint32]uint32),
 }
@@ -43,6 +46,10 @@ func SetNewFilterContext(f func(rootContextID, contextID uint32) FilterContext) 
 
 func SetNewStreamContext(f func(rootContextID, contextID uint32) StreamContext) {
 	this.newStreamContext = f
+}
+
+func SetNewProtocolContext(f func(rootContextID, contextID uint32) ProtocolContext) {
+	this.newProtocolContext = f
 }
 
 //go:inline
@@ -75,6 +82,20 @@ func (s *state) createFilterContext(contextID uint32, rootContextID uint32) {
 	ctx := s.newFilterContext(rootContextID, contextID)
 	s.contextIDToRootID[contextID] = rootContextID
 	s.filterStreams[contextID] = ctx
+}
+
+func (s *state) createProtocolContext(contextID uint32, rootContextID uint32) {
+	if _, ok := s.rootContexts[rootContextID]; !ok {
+		panic("invalid root context id")
+	}
+
+	if _, ok := s.filterStreams[contextID]; ok {
+		panic("context id duplicated")
+	}
+
+	ctx := s.newProtocolContext(rootContextID, contextID)
+	s.contextIDToRootID[contextID] = rootContextID
+	s.protocolStreams[contextID] = ctx
 }
 
 func (s *state) createStreamContext(contextID uint32, rootContextID uint32) {

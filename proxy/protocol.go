@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
+	"sync/atomic"
 )
 
 type Codec interface {
@@ -58,8 +59,11 @@ type Options interface {
 	EnableWorkerPool() bool
 	// generate a request id for stream to combine stream request && response
 	// use connection param as base
-	// GenerateRequestID(*uint64) uint64
+	EnableGenerateRequestID() bool
+	GenerateRequestID(*uint64) uint64
 }
+
+var options = &DefaultOptions{}
 
 type DefaultOptions struct {
 }
@@ -70,4 +74,12 @@ func (o *DefaultOptions) PoolMode() types.PoolMode {
 
 func (o *DefaultOptions) EnableWorkerPool() bool {
 	return true
+}
+
+func (o *DefaultOptions) EnableGenerateRequestID() bool {
+	return false
+}
+
+func (o *DefaultOptions) GenerateRequestID(v *uint64) uint64 {
+	return atomic.AddUint64(v, 1)
 }
