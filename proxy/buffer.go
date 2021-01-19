@@ -83,6 +83,7 @@ type Buffer interface {
 	Len() int
 	Cap() int
 	Pos() int
+	Move(int)
 	Grow(n int)
 	Reset()
 	Peek(n int) []byte
@@ -144,7 +145,8 @@ func NewBuffer(size int) Buffer {
 		cap = smallBufferSize
 	}
 	return &byteBuffer{
-		buf:       make([]byte, size, cap),
+		// be sure to update the index on write, where the length is set to 0
+		buf:       make([]byte, 0, cap),
 		pos:       0,
 		mark:      resetOffMark,
 		byteOrder: binary.BigEndian,
@@ -154,7 +156,8 @@ func NewBuffer(size int) Buffer {
 func Allocate(buf []byte) Buffer {
 	l := len(buf)
 	return &byteBuffer{
-		buf:       make([]byte, l, l),
+		// be sure to update the index on write, where the length is set to 0
+		buf:       make([]byte, 0, l),
 		pos:       0,
 		mark:      resetOffMark,
 		byteOrder: binary.BigEndian,
@@ -586,6 +589,13 @@ func (b *byteBuffer) GetInt64(i int) (int64, error) {
 
 func (b *byteBuffer) Pos() int {
 	return b.pos
+}
+
+func (b *byteBuffer) Move(p int) {
+	if p < 0 || p > len(b.buf) {
+		panic("bytes.Buffer.Move: bad index")
+	}
+	b.pos = p
 }
 
 // ======================== private method impl ========================
