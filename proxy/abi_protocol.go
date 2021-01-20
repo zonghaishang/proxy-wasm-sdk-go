@@ -8,7 +8,7 @@ import (
 func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
 		return types.StatusInternalFailure
 	}
 	this.setActiveContextID(contextID)
@@ -21,8 +21,13 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	// convert data into an array of bytes to be parsed
 	data := parseByteSlice(*bufferData, len)
 	buffer := Allocate(data)
+
 	// call user extension implementation
 	cmd, err := ctx.Codec().Decode(buffer)
+	if err != nil {
+		log.Fatalf("failed to decode buffer by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
+		return types.StatusInternalFailure
+	}
 
 	// need more data
 	if cmd == nil {
@@ -30,19 +35,12 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	}
 
 	ctx.(Attribute).Set(types.AttributeKeyDecodeCommand, cmd)
-
-	// we check decode is ok
-	if err != nil {
-		log.Fatalf("failed to decode buffer by protocol %s, context id %v, err %v", ctx.Name(), contextID, err)
-		return types.StatusInternalFailure
-	}
-
 	proxyBuffer := encodeProxyCommand(cmd, false)
-
 	// report encode data
 	err = setDecodeBuffer(proxyBuffer.Bytes())
 	if err != nil {
-		log.Errorf("failed to report decode buffer by protocol %s, context id %v, err %v", ctx.Name(), contextID, err)
+		log.Errorf("failed to report decode buffer by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
+		return types.StatusInternalFailure
 	}
 
 	return types.StatusOK
@@ -52,7 +50,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode buffer by protocol %s, context replacedId %v not found", ctx.Name(), contextID)
 		return types.StatusInternalFailure
 	}
 	this.setActiveContextID(contextID)
@@ -62,13 +60,13 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 		return types.StatusEmpty
 	}
 
-	// convert data into an array of bytes to be parsed
+	// convert data into an array of dataBytes to be parsed
 	data := parseByteSlice(*bufferData, len)
 	buffer := Allocate(data)
 
 	// bufferData format:
-	// encoded header map | Flag | Id | (Timeout|Status) | drain length | raw bytes
-	n, err := buffer.ReadInt()
+	// encoded header map | Flag | Id | (Timeout|Status) | drain length | raw dataBytes
+	headerBytes, err := buffer.ReadInt()
 	if err != nil {
 		log.Errorf("failed to read decode buffer header map, contextId: %v", contextID)
 		return types.StatusInternalFailure
@@ -76,8 +74,8 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 
 	headers := &CommonHeader{}
 	// encoded header map
-	if n > 0 {
-		decodeHeader(data[4:4+n], headers)
+	if headerBytes > 0 {
+		decodeHeader(data[4:4+headerBytes], headers)
 	}
 
 	flag, err := buffer.ReadByte()
@@ -98,15 +96,15 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 		return types.StatusInternalFailure
 	}
 
-	id, err := buffer.ReadUint64()
+	replacedId, err := buffer.ReadUint64()
 	if err != nil {
-		log.Errorf("failed to decode buffer id, contextId: %v", contextID)
+		log.Errorf("failed to decode buffer replacedId, contextId: %v", contextID)
 		return types.StatusInternalFailure
 	}
 
 	var cmd Command
-	f := flag >> 6
-	switch f {
+	cmdType := flag >> 6
+	switch cmdType {
 	case types.RequestType:
 	case types.RequestOneWayType:
 		cmd, ok = cachedCmd.(Request)
@@ -126,48 +124,36 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 		return types.StatusInternalFailure
 	}
 
-	// todo check id
-	//// we check encoded id equals cached command id
-	//if id != cmd.CommandId() {
-	//	log.Errorf("encode buffer command id is not match , expect = %d, actual = %d", cmd.CommandId(), id)
+	// todo check replacedId
+	//// we check encoded replacedId equals cached command replacedId
+	//if replacedId != cmd.CommandId() {
+	//	log.Errorf("encode buffer command replacedId is not match , expect = %d, actual = %d", cmd.CommandId(), replacedId)
 	//	return types.StatusInternalFailure
 	//}
 
 	// skip timeout or status
 	buffer.ReadInt()
 
-	bytes, err := buffer.ReadInt()
+	dataBytes, err := buffer.ReadInt()
 	if err != nil {
 		log.Errorf("failed to decode buffer drain length, contextId: %v", contextID)
 		return types.StatusInternalFailure
 	}
 
-	if bytes > 0 {
+	if dataBytes > 0 {
 		// including protocol header
 		cmd.SetData(Allocate(data[buffer.Pos():]))
 	}
 
 	// override cached request
-	if cmd.Header().Size() != headers.Size() {
-		cmd.Header().Range(func(key, value string) bool {
-			v, ok := headers.Get(key)
-			if !ok {
-				// remove old key
-				cmd.Header().Del(key)
-			} else {
-				// add new key
-				cmd.Header().Set(key, v)
-			}
-			return true
-		})
-	}
+	injectHeaderIfRequired(cmd, headers)
 
-	// update command id
-	cmd.SetCommandId(id)
+	// update command replacedId
+	cmd.SetCommandId(replacedId)
 	// call user extension implementation
 	buff, err := ctx.Codec().Encode(cmd)
 	if err != nil {
-		log.Fatalf("failed to encode command by protocol %s, context id %v, err %v", ctx.Name(), contextID, err)
+		log.Fatalf("failed to encode command by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
 		return types.StatusInternalFailure
 	}
 	// update encoded command data
@@ -179,7 +165,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	// report encode data
 	err = setEncodeBuffer(proxyBuffer.Bytes())
 	if err != nil {
-		log.Errorf("failed to report encode buffer by protocol %s, context id %v, err %v", ctx.Name(), contextID, err)
+		log.Errorf("failed to report encode buffer by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
 	}
 
 	return types.StatusOK
@@ -189,7 +175,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 func proxyKeepAliveBufferBytes(contextID uint32, id uint64) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode keepalive buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode keepalive buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
 		return types.StatusInternalFailure
 	}
 
@@ -206,7 +192,7 @@ func proxyKeepAliveBufferBytes(contextID uint32, id uint64) types.Status {
 func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData **byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode reply keepalive buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode reply keepalive buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
 		return types.StatusInternalFailure
 	}
 
@@ -217,7 +203,7 @@ func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData **byte, len int
 	buffer := Allocate(data)
 	cmd, err := ctx.Codec().Decode(buffer)
 	if err != nil {
-		log.Errorf("failed to decode reply keepalive request by protocol %s, context id %v, err %v", ctx.Name(), contextID, err)
+		log.Errorf("failed to decode reply keepalive request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
 		return types.StatusInternalFailure
 	}
 
@@ -232,7 +218,7 @@ func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData **byte, len int
 func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData **byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode hijack buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode hijack buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
 		return types.StatusInternalFailure
 	}
 
@@ -242,7 +228,7 @@ func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData **by
 	buffer := Allocate(data)
 	cmd, err := ctx.Codec().Decode(buffer)
 	if err != nil {
-		log.Errorf("failed to decode hijack request by protocol %s, context id %v, err %v", ctx.Name(), contextID, err)
+		log.Errorf("failed to decode hijack request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
 		return types.StatusInternalFailure
 	}
 
@@ -257,17 +243,16 @@ func encodeProxyCommand(cmd Command, simple bool) Buffer {
 	// bufferData format:
 	// encoded header map | Flag | Id | (Timeout|Status) | drain length | raw bytes
 	headers := cmd.Header()
-
 	buf := AllocateBuffer()
 
-	var n = 0
+	var headerBytes = 0
 	if simple {
-		buf.WriteInt(n)
+		buf.WriteInt(headerBytes)
 	} else {
-		n = getEncodeHeaderLength(headers)
-		buf.WriteInt(n)
+		headerBytes = getEncodeHeaderLength(headers)
+		buf.WriteInt(headerBytes)
 		// encoded header map
-		if n > 0 {
+		if headerBytes > 0 {
 			encodeHeader(buf, headers)
 		}
 	}
@@ -285,19 +270,39 @@ func encodeProxyCommand(cmd Command, simple bool) Buffer {
 
 	// check is request
 	if req, ok := cmd.(Request); ok {
-		// update request flag
-		buf.PutByte(flagIndex, flag|RpcRequestFlag)
+		flag = flag | RpcRequestFlag
 		if req.IsOneWay() {
-			buf.PutByte(flagIndex, flag|RpcOnewayFlag)
+			flag = flag | RpcOnewayFlag
 		}
+		// update request flag
+		buf.PutByte(flagIndex, flag)
 		buf.WriteUint32(req.Timeout())
 	} else if resp, ok := cmd.(Response); ok {
 		buf.WriteUint32(resp.Status())
 	}
 
 	// update drain length
-	buf.WriteInt(cmd.Data().Len())
-	buf.Write(cmd.Data().Bytes())
+	drainBytes := cmd.Data().Len()
+	buf.WriteInt(drainBytes)
+	if drainBytes > 0 {
+		buf.Write(cmd.Data().Bytes())
+	}
 
 	return buf
+}
+
+func injectHeaderIfRequired(cmd Command, headers *CommonHeader) {
+	if cmd.Header().Size() != headers.Size() {
+		cmd.Header().Range(func(key, value string) bool {
+			v, ok := headers.Get(key)
+			if !ok {
+				// remove old key
+				cmd.Header().Del(key)
+			} else {
+				// add new key
+				cmd.Header().Set(key, v)
+			}
+			return true
+		})
+	}
 }

@@ -22,8 +22,8 @@ func getEncodeHeaderLength(h Header) int {
 
 func encodeHeader(buf Buffer, h Header) {
 	h.Range(func(key, value string) bool {
-		encodeStr(buf, key)
-		encodeStr(buf, value)
+		encodeString(buf, key)
+		encodeString(buf, value)
 		return true
 	})
 }
@@ -35,7 +35,7 @@ func decodeHeader(bytes []byte, h Header) (err error) {
 
 	for index < totalLen {
 		// 1. read key
-		key, index, err = decodeStr(bytes, totalLen, index)
+		key, index, err = decodeString(bytes, totalLen, index)
 		if err != nil {
 			if err == errInvalidLength {
 				continue
@@ -44,7 +44,7 @@ func decodeHeader(bytes []byte, h Header) (err error) {
 		}
 
 		// 2. read value
-		value, index, err = decodeStr(bytes, totalLen, index)
+		value, index, err = decodeString(bytes, totalLen, index)
 		if err != nil {
 			if err == errInvalidLength {
 				continue
@@ -58,7 +58,7 @@ func decodeHeader(bytes []byte, h Header) (err error) {
 	return nil
 }
 
-func encodeStr(buf Buffer, str string) {
+func encodeString(buf Buffer, str string) {
 	length := len(str)
 	// 1. encode str length
 	buf.WriteUint32(uint32(length))
@@ -66,7 +66,7 @@ func encodeStr(buf Buffer, str string) {
 	buf.Write([]byte(str))
 }
 
-func decodeStr(bytes []byte, totalLen, index int) (str []byte, newIndex int, err error) {
+func decodeString(bytes []byte, totalLen, index int) (str []byte, newIndex int, err error) {
 	// 1. read str length
 	length := binary.BigEndian.Uint32(bytes[index:])
 
