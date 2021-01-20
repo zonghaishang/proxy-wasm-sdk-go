@@ -8,7 +8,7 @@ import (
 func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode buffer by protocol %s, context id %v", ctx.Name(), contextID)
+		log.Errorf("failed to decode buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
 		return types.StatusInternalFailure
 	}
 	this.setActiveContextID(contextID)
@@ -52,7 +52,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode buffer by protocol %s, context id %v", ctx.Name(), contextID)
+		log.Errorf("failed to decode buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
 		return types.StatusInternalFailure
 	}
 	this.setActiveContextID(contextID)
@@ -65,13 +65,6 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	// convert data into an array of bytes to be parsed
 	data := parseByteSlice(*bufferData, len)
 	buffer := Allocate(data)
-
-	// find context cmd
-	cachedCmd := ctx.(Attribute).Attr(types.AttributeKeyDecodeCommand)
-	if cachedCmd == nil {
-		log.Errorf("failed to find cached command, maybe a bug occurred, contextId: %v", contextID)
-		return types.StatusInternalFailure
-	}
 
 	// bufferData format:
 	// encoded header map | Flag | Id | (Timeout|Status) | drain length | raw bytes
@@ -90,6 +83,18 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	flag, err := buffer.ReadByte()
 	if err != nil {
 		log.Errorf("failed to decode buffer flag, contextId: %v", contextID)
+		return types.StatusInternalFailure
+	}
+
+	// find context cmd
+	cachedCmd := ctx.(Attribute).Attr(types.AttributeKeyDecodeCommand)
+	if cachedCmd == nil {
+		// is heartbeat 、keep-alive or hijack ?
+		cachedCmd = ctx.(Attribute).Attr(types.AttributeKeyEncodeCommand)
+	}
+
+	if cachedCmd == nil {
+		log.Errorf("failed to find cached command, maybe a bug occurred, contextId: %v", contextID)
 		return types.StatusInternalFailure
 	}
 
@@ -182,16 +187,69 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 
 //export proxy_keepalive_buffer_bytes
 func proxyKeepAliveBufferBytes(contextID uint32, id uint64) types.Status {
+	ctx, ok := this.protocolStreams[contextID]
+	if !ok {
+		log.Errorf("failed to decode keepalive buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
+		return types.StatusInternalFailure
+	}
+
+	this.setActiveContextID(contextID)
+
+	cmd := ctx.KeepAlive().KeepAlive(id)
+	attr := ctx.(Attribute)
+	attr.Set(types.AttributeKeyEncodeCommand, cmd)
+
 	return types.StatusOK
 }
 
 //export proxy_reply_keepalive_buffer_bytes
-func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData *byte, bufferSize int) types.Status {
+func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData **byte, len int) types.Status {
+	ctx, ok := this.protocolStreams[contextID]
+	if !ok {
+		log.Errorf("failed to decode reply keepalive buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
+		return types.StatusInternalFailure
+	}
+
+	this.setActiveContextID(contextID)
+
+	// convert data into an array of bytes to be parsed
+	data := parseByteSlice(*bufferData, len)
+	buffer := Allocate(data)
+	cmd, err := ctx.Codec().Decode(buffer)
+	if err != nil {
+		log.Errorf("failed to decode reply keepalive request by protocol %s, context id %v, err %v", ctx.Name(), contextID, err)
+		return types.StatusInternalFailure
+	}
+
+	resp := ctx.KeepAlive().ReplyKeepAlive(cmd.(Request))
+	attr := ctx.(Attribute)
+	attr.Set(types.AttributeKeyEncodeCommand, resp)
+
 	return types.StatusOK
 }
 
 //export proxy_hijack_buffer_bytes
-func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData *byte, bufferSize int) types.Status {
+func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData **byte, len int) types.Status {
+	ctx, ok := this.protocolStreams[contextID]
+	if !ok {
+		log.Errorf("failed to decode hijack buffer by protocol %s, context id %v not found", ctx.Name(), contextID)
+		return types.StatusInternalFailure
+	}
+
+	this.setActiveContextID(contextID)
+
+	data := parseByteSlice(*bufferData, len)
+	buffer := Allocate(data)
+	cmd, err := ctx.Codec().Decode(buffer)
+	if err != nil {
+		log.Errorf("failed to decode hijack request by protocol %s, context id %v, err %v", ctx.Name(), contextID, err)
+		return types.StatusInternalFailure
+	}
+
+	resp := ctx.Hijacker().Hijack(cmd.(Request), statusCode)
+	attr := ctx.(Attribute)
+	attr.Set(types.AttributeKeyEncodeCommand, resp)
+
 	return types.StatusOK
 }
 
