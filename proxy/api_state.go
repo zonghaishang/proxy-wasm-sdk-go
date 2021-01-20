@@ -104,7 +104,7 @@ func (s *state) createStreamContext(contextID uint32, rootContextID uint32) {
 	}
 
 	if _, ok := s.streams[contextID]; ok {
-		panic("context id duplicated")
+		panic(" stream context id duplicated")
 	}
 
 	ctx := s.newStreamContext(rootContextID, contextID)

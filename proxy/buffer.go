@@ -40,6 +40,9 @@ type Header interface {
 	// Range calls f sequentially for each key and value present in the map.
 	// If f returns false, range stops the iteration.
 	Range(f func(key, value string) bool)
+
+	// Size header key value pair count
+	Size() int
 }
 
 type CommonHeader map[string]string
@@ -65,6 +68,10 @@ func (h CommonHeader) Add(key string, value string) {
 // Del delete pair of specified key
 func (h CommonHeader) Del(key string) {
 	delete(h, key)
+}
+
+func (h CommonHeader) Size() int {
+	return len(h)
 }
 
 // Range calls f sequentially for each key and value present in the map.

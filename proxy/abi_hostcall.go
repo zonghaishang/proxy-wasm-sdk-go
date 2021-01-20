@@ -69,6 +69,24 @@ func setHttpRequestBody(body []byte) error {
 	return types.StatusToError(status)
 }
 
+func setDecodeBuffer(body []byte) error {
+	var buff *byte
+	if len(body) != 0 {
+		buff = &body[0]
+	}
+	status := syscall.ProxySetBufferBytes(types.BufferTypeDecodeData, 0, len(body), buff, len(body))
+	return types.StatusToError(status)
+}
+
+func setEncodeBuffer(body []byte) error {
+	var buff *byte
+	if len(body) != 0 {
+		buff = &body[0]
+	}
+	status := syscall.ProxySetBufferBytes(types.BufferTypeEncodeData, 0, len(body), buff, len(body))
+	return types.StatusToError(status)
+}
+
 func getHttpRequestTrailers() (map[string]string, error) {
 	trailers, status := getMap(types.MapTypeHttpRequestTrailers)
 	return trailers, types.StatusToError(status)

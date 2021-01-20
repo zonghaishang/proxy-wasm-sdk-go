@@ -9,7 +9,6 @@ func proxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) t
 		panic("invalid context on proxy_on_request_headers")
 	}
 	this.setActiveContextID(contextID)
-
 	var header Header
 	if numHeaders > 0 {
 		hs, err := getHttpRequestHeaders()
@@ -19,7 +18,8 @@ func proxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) t
 		}
 		header = CommonHeader(hs)
 		// update context header
-		WithValue(ctx.Context(), types.ContextKeyHeaderHolder, header)
+		attr := ctx.(Attribute)
+		attr.Set(types.AttributeKeyHeaderHolder, header)
 	}
 
 	if endOfStream {
@@ -37,6 +37,8 @@ func proxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.
 	}
 	this.setActiveContextID(contextID)
 
+	attr := ctx.(Attribute)
+
 	var body Buffer
 	if bodySize > 0 {
 		bodyBytes, err := getHttpRequestBody(0, bodySize)
@@ -47,11 +49,11 @@ func proxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.
 
 		body = Allocate(bodyBytes)
 		// update context body buffer
-		WithValue(ctx.Context(), types.ContextKeyBufferHolder, body)
+		attr.Set(types.AttributeKeyBufferHolder, body)
 	}
 
 	if endOfStream {
-		header := Get(ctx.Context(), types.ContextKeyHeaderHolder)
+		header := attr.Attr(types.AttributeKeyHeaderHolder)
 		return ctx.OnDownStreamReceived(header.(Header), body, nil)
 	}
 
@@ -66,6 +68,8 @@ func proxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
 	}
 	this.setActiveContextID(contextID)
 
+	attr := ctx.(Attribute)
+
 	var trailer Header
 	if numTrailers > 0 {
 		trailers, err := getHttpRequestTrailers()
@@ -75,11 +79,11 @@ func proxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
 		}
 		trailer = CommonHeader(trailers)
 		// update context header
-		WithValue(ctx.Context(), types.ContextKeyTrailerHolder, trailer)
+		attr.Set(types.AttributeKeyTrailerHolder, trailer)
 	}
 
-	header := Get(ctx.Context(), types.ContextKeyHeaderHolder)
-	body := Get(ctx.Context(), types.ContextKeyBufferHolder)
+	header := attr.Attr(types.AttributeKeyHeaderHolder)
+	body := attr.Attr(types.AttributeKeyBufferHolder)
 
 	return ctx.OnDownStreamReceived(header.(Header), body.(Buffer), trailer)
 }
@@ -100,8 +104,9 @@ func proxyOnResponseHeaders(contextID uint32, numHeaders int, endOfStream bool) 
 			return types.ActionContinue
 		}
 		header = CommonHeader(hs)
+		attr := ctx.(Attribute)
 		// update context header
-		WithValue(ctx.Context(), types.ContextKeyHeaderHolder, header)
+		attr.Set(types.AttributeKeyHeaderHolder, header)
 	}
 
 	if endOfStream {
@@ -119,6 +124,8 @@ func proxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types
 	}
 	this.setActiveContextID(contextID)
 
+	attr := ctx.(Attribute)
+
 	var body Buffer
 	if bodySize > 0 {
 		bodyBytes, err := getHttpResponseBody(0, bodySize)
@@ -129,11 +136,11 @@ func proxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types
 
 		body = Allocate(bodyBytes)
 		// update context body buffer
-		WithValue(ctx.Context(), types.ContextKeyBufferHolder, body)
+		attr.Set(types.AttributeKeyBufferHolder, body)
 	}
 
 	if endOfStream {
-		header := Get(ctx.Context(), types.ContextKeyHeaderHolder)
+		header := attr.Attr(types.AttributeKeyHeaderHolder)
 		return ctx.OnUpstreamReceived(header.(Header), body, nil)
 	}
 
@@ -147,6 +154,9 @@ func proxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
 		panic("invalid context id on proxy_on_response_headers")
 	}
 	this.setActiveContextID(contextID)
+
+	attr := ctx.(Attribute)
+
 	var trailer Header
 	if numTrailers > 0 {
 		trailers, err := getHttpResponseTrailers()
@@ -156,11 +166,11 @@ func proxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
 		}
 		trailer = CommonHeader(trailers)
 		// update context header
-		WithValue(ctx.Context(), types.ContextKeyTrailerHolder, trailer)
+		attr.Set(types.AttributeKeyTrailerHolder, trailer)
 	}
 
-	header := Get(ctx.Context(), types.ContextKeyHeaderHolder)
-	body := Get(ctx.Context(), types.ContextKeyBufferHolder)
+	header := attr.Attr(types.AttributeKeyHeaderHolder)
+	body := attr.Attr(types.AttributeKeyBufferHolder)
 
 	return ctx.OnUpstreamReceived(header.(Header), body.(Buffer), trailer)
 }

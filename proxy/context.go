@@ -1,8 +1,8 @@
 package proxy
 
 import (
-	"context"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
+	"reflect"
 )
 
 type RootContext interface {
@@ -21,8 +21,8 @@ type FilterContext interface {
 	// OnUpstreamReceived Called when the data responds,
 	// The caller should check if the parameter value is nil
 	OnUpstreamReceived(headers Header, data Buffer, trailers Header) types.Action
-	// Context Used to save and pass data during a session
-	Context() context.Context
+	//// Context Used to save and pass data during a session
+	//Context() context.Context
 	OnFilterStreamDone()
 	OnLog()
 }
@@ -47,11 +47,18 @@ type StreamContext interface {
 	OnLog()
 }
 
+type Attribute interface {
+	Attr(key string) interface{}
+	Set(key string, v interface{})
+	Remove(key string)
+}
+
 type (
 	DefaultRootContext     struct{}
-	DefaultFilterContext   struct{ ctx context.Context }
+	DefaultFilterContext   struct{ DefaultAttribute }
 	DefaultStreamContext   struct{}
-	DefaultProtocolContext struct{}
+	DefaultProtocolContext struct{ DefaultAttribute }
+	DefaultAttribute       struct{ m map[string]interface{} }
 )
 
 var (
@@ -59,6 +66,7 @@ var (
 	_ FilterContext   = &DefaultFilterContext{}
 	_ StreamContext   = &DefaultStreamContext{}
 	_ ProtocolContext = &DefaultProtocolContext{}
+	_ Attribute       = &DefaultAttribute{}
 )
 
 // impl RootContext
@@ -78,12 +86,12 @@ func (c *DefaultFilterContext) OnUpstreamReceived(headers Header, data Buffer, t
 	return types.ActionContinue
 }
 
-func (c *DefaultFilterContext) Context() context.Context {
-	if c.ctx == nil {
-		c.ctx = &internalContext{Context: context.Background()}
-	}
-	return c.ctx
-}
+//func (c *DefaultFilterContext) Context() context.Context {
+//	if c.ctx == nil {
+//		c.ctx = &internalContext{Context: context.Background()}
+//	}
+//	return c.ctx
+//}
 
 func (*DefaultFilterContext) OnFilterStreamDone() {}
 
@@ -134,4 +142,39 @@ func (*DefaultProtocolContext) Hijacker() Hijacker {
 
 func (*DefaultProtocolContext) Options() Options {
 	return options
+}
+
+// attribute impl
+func (a *DefaultAttribute) Attr(key string) interface{} {
+	if a.m == nil {
+		return nil
+	}
+	return a.m[key]
+}
+
+func (a *DefaultAttribute) Set(key string, v interface{}) {
+	remove := v == nil || reflect.ValueOf(v).IsNil()
+
+	if len(a.m) == 0 {
+		// nil value should be ignored
+		if remove {
+			return
+		}
+		a.m = make(map[string]interface{})
+	}
+
+	if remove {
+		a.Remove(key)
+		return
+	}
+
+	a.m[key] = v
+}
+
+func (a *DefaultAttribute) Remove(key string) {
+	if len(a.m) == 0 {
+		return
+	}
+	// remove unused key
+	delete(a.m, key)
 }

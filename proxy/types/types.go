@@ -163,15 +163,16 @@ func StatusToError(status Status) error {
 }
 
 // context impl
-type ContextKey int
+type AttributeKey string
 
 const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyListenerType
-	ContextKeyHeaderHolder
-	ContextKeyBufferHolder
-	ContextKeyTrailerHolder
-	ContextKeyEnd
+	AttributeKeyStreamID      AttributeKey = "stream_id"
+	AttributeKeyListenerType               = "listener_type"
+	AttributeKeyHeaderHolder               = "header"
+	AttributeKeyBufferHolder               = "buffer"
+	AttributeKeyTrailerHolder              = "trailer"
+	AttributeKeyDecodeCommand              = "decode_command"
+	AttributeKeyEncodeCommand              = "encode_command"
 )
 
 // PoolMode is whether PingPong or multiplex
@@ -181,4 +182,11 @@ const (
 	PingPong PoolMode = iota
 	Multiplex
 	TCP
+)
+
+const (
+	ResponseType       = 0
+	RequestType        = 1
+	RequestOneWayType  = 2
+	UnKnownRpcFlagType = "unknown protocol flag type"
 )
