@@ -1,9 +1,10 @@
 package proxy
 
 const (
-	HeartBeatFlag  byte = 1 << 5      // 0010_0000
-	RpcRequestFlag byte = 1 << 6      // 0100_0000
-	RpcOnewayFlag  byte = 1<<6 | 1<<7 // 1100_0000
+	CopyRawBytesFlag byte = 1           // 0000_0001
+	HeartBeatFlag    byte = 1 << 5      // 0010_0000
+	RpcRequestFlag   byte = 1 << 6      // 0100_0000
+	RpcOnewayFlag    byte = 1<<6 | 1<<7 // 1100_0000
 )
 
 //export proxy_on_context_create

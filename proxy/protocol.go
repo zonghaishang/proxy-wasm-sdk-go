@@ -13,10 +13,10 @@ type Codec interface {
 // Command base request or response command
 type Command interface {
 	// Header get the data exchange header, maybe return nil.
-	Header() Header
-	// GetData return the complete message byte buffer, including the protocol header
-	Data() Buffer
-	// SetData update the complete message byte buffer, including the protocol header
+	GetHeader() Header
+	// GetData return the full message buffer, the protocol header is not included
+	GetData() Buffer
+	// SetData update the full message buffer, the protocol header is not included
 	SetData(data Buffer)
 	// IsHeartbeat check if the request is a heartbeat request
 	IsHeartbeat() bool
