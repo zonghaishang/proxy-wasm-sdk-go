@@ -5,6 +5,10 @@ import (
 )
 
 const (
+	ProtocolName    string = "bolt" // protocol
+	ProtocolCode    byte   = 1
+	ProtocolVersion byte   = 1
+
 	CmdTypeResponse      byte = 0 // cmd type
 	CmdTypeRequest       byte = 1
 	CmdTypeRequestOneway byte = 2
@@ -12,6 +16,18 @@ const (
 	CmdCodeHeartbeat   uint16 = 0 // cmd code
 	CmdCodeRpcRequest  uint16 = 1
 	CmdCodeRpcResponse uint16 = 2
+
+	Hessian2Serialize byte = 1 // serialize
+
+	RequestHeaderLen  int = 22 // protocol header fields length
+	ResponseHeaderLen int = 20
+	LessLen           int = ResponseHeaderLen // minimal length for decoding
+
+	RequestIdIndex         = 5
+	RequestHeaderLenIndex  = 16
+	ResponseHeaderLenIndex = 14
+
+	UnKnownCmdType string = "unknown cmd type"
 )
 
 type RpcHeader struct {
@@ -35,7 +51,7 @@ type RpcHeader struct {
 type Request struct {
 	RpcHeader
 
-	timeout    uint32
+	Timeout    int32
 	rawData    []byte // raw data
 	rawMeta    []byte // sub slice of raw data, start from protocol code, ends to content length
 	rawClass   []byte // sub slice of raw data, class bytes
@@ -49,7 +65,7 @@ type Request struct {
 }
 
 // Header get the data exchange header, maybe return nil.
-func (r *Request) Header() proxy.Header {
+func (r *Request) GetHeader() proxy.Header {
 	return r
 }
 
@@ -87,14 +103,14 @@ func (r *Request) IsOneWay() bool {
 }
 
 func (r *Request) GetTimeout() uint32 {
-	return r.timeout
+	return uint32(r.Timeout)
 }
 
 // Response is the cmd struct of bolt v1 response
 type Response struct {
 	RpcHeader
 
-	status uint16
+	Status uint16
 
 	rawData    []byte // raw data
 	rawMeta    []byte // sub slice of raw data, start from protocol code, ends to content length
@@ -109,7 +125,7 @@ type Response struct {
 }
 
 // Header get the data exchange header, maybe return nil.
-func (r *Response) Header() proxy.Header {
+func (r *Response) GetHeader() proxy.Header {
 	return r
 }
 
@@ -141,7 +157,7 @@ func (r *Response) SetCommandId(id uint64) {
 	r.RequestId = uint32(id)
 }
 
-// response status
-func (r *Response) Status() uint32 {
-	return uint32(r.status)
+// response Status
+func (r *Response) GetStatus() uint32 {
+	return uint32(r.Status)
 }

@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 )
 
@@ -22,7 +23,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	data := parseByteSlice(*bufferData, len)
 	buffer := Allocate(data)
 	// call user extension implementation
-	cmd, err := ctx.Codec().Decode(buffer)
+	cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
 	if err != nil {
 		log.Fatalf("failed to decode buffer by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
 		return types.StatusInternalFailure
@@ -71,7 +72,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	buffer := Allocate(data)
 
 	// bufferData format:
-	// encoded header map | Flag | replaceId, id | (Timeout|Status) | drain length | raw dataBytes
+	// encoded header map | Flag | replaceId, id | (Timeout|GetStatus) | drain length | raw dataBytes
 	headerBytes, err := buffer.ReadInt()
 	if err != nil {
 		log.Errorf("failed to read decode buffer header map, contextId: %v", contextID)
@@ -81,7 +82,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	headers := &CommonHeader{}
 	// encoded header map
 	if headerBytes > 0 {
-		decodeHeader(data[4:4+headerBytes], headers)
+		DecodeHeader(data[4:4+headerBytes], headers)
 	}
 
 	flag, err := buffer.ReadByte()
@@ -157,7 +158,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	// update command replacedId
 	cmd.SetCommandId(replacedId)
 	// call user extension implementation
-	encode, err := ctx.Codec().Encode(cmd)
+	encode, err := ctx.Codec().Encode(context.TODO(), cmd)
 	if err != nil {
 		log.Fatalf("failed to encode command by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
 		return types.StatusInternalFailure
@@ -205,7 +206,7 @@ func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData **byte, len int
 	// convert data into an array of bytes to be parsed
 	data := parseByteSlice(*bufferData, len)
 	buffer := Allocate(data)
-	cmd, err := ctx.Codec().Decode(buffer)
+	cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
 	if err != nil {
 		log.Errorf("failed to decode reply keepalive request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
 		return types.StatusInternalFailure
@@ -230,7 +231,7 @@ func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData **by
 
 	data := parseByteSlice(*bufferData, len)
 	buffer := Allocate(data)
-	cmd, err := ctx.Codec().Decode(buffer)
+	cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
 	if err != nil {
 		log.Errorf("failed to decode hijack request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
 		return types.StatusInternalFailure
@@ -245,15 +246,15 @@ func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData **by
 
 func decodeCommandBuffer(cmd Command, drainBytes int) Buffer {
 	// bufferData format:
-	// encoded header map | Flag | Id | (Timeout|Status) | drain length | raw bytes length | raw bytes
+	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes length | raw bytes
 	headers := cmd.GetHeader()
 	buf := AllocateBuffer()
 
-	headerBytes := getEncodeHeaderLength(headers)
+	headerBytes := GetEncodeHeaderLength(headers)
 	buf.WriteInt(headerBytes)
 	// encoded header map
 	if headerBytes > 0 {
-		encodeHeader(buf, headers)
+		EncodeHeader(buf, headers)
 	}
 
 	var flag byte
@@ -278,9 +279,9 @@ func decodeCommandBuffer(cmd Command, drainBytes int) Buffer {
 		}
 		// update request flag
 		buf.PutByte(flagIndex, flag)
-		buf.WriteUint32(req.Timeout())
+		buf.WriteUint32(req.GetTimeout())
 	} else if resp, ok := cmd.(Response); ok {
-		buf.WriteUint32(resp.Status())
+		buf.WriteUint32(resp.GetStatus())
 	}
 
 	buf.WriteInt(drainBytes)
@@ -296,7 +297,7 @@ func decodeCommandBuffer(cmd Command, drainBytes int) Buffer {
 
 func encodeCommandBuffer(cmd Command, encode Buffer) Buffer {
 	// bufferData format:
-	// encoded header map | Flag | Id | (Timeout|Status) | drain length | raw bytes
+	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes
 	buf := AllocateBuffer()
 
 	var headerBytes = 0
@@ -324,9 +325,9 @@ func encodeCommandBuffer(cmd Command, encode Buffer) Buffer {
 		}
 		// update request flag
 		buf.PutByte(flagIndex, flag)
-		buf.WriteUint32(req.Timeout())
+		buf.WriteUint32(req.GetTimeout())
 	} else if resp, ok := cmd.(Response); ok {
-		buf.WriteUint32(resp.Status())
+		buf.WriteUint32(resp.GetStatus())
 	}
 
 	drainBytes := encode.Len()

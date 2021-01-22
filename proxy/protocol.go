@@ -1,13 +1,23 @@
 package proxy
 
 import (
+	"context"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
+	"net/http"
 	"sync/atomic"
 )
 
+type Protocol interface {
+	Name() string
+	Codec() Codec
+	KeepAlive
+	Hijacker
+	Options
+}
+
 type Codec interface {
-	Decode(data Buffer) (Command, error)
-	Encode(message Command) (Buffer, error)
+	Decode(ctx context.Context, data Buffer) (Command, error)
+	Encode(ctx context.Context, cmd Command) (Buffer, error)
 }
 
 // Command base request or response command
@@ -33,12 +43,12 @@ type Request interface {
 	Command
 	// IsOneWay Check that the request does not care about the response
 	IsOneWay() bool
-	Timeout() uint32 // request timeout
+	GetTimeout() uint32 // request timeout
 }
 
 type Response interface {
 	Command
-	Status() uint32 // response status
+	GetStatus() uint32 // response status
 }
 
 type KeepAlive interface {
@@ -84,4 +94,56 @@ func (o *DefaultOptions) EnableGenerateRequestID() bool {
 
 func (o *DefaultOptions) GenerateRequestID(v *uint64) uint64 {
 	return atomic.AddUint64(v, 1)
+}
+
+const (
+	ResponseStatusSuccess                    uint16 = 0  // 0x00 response status
+	ResponseStatusError                      uint16 = 1  // 0x01
+	ResponseStatusServerException            uint16 = 2  // 0x02
+	ResponseStatusUnknown                    uint16 = 3  // 0x03
+	ResponseStatusServerThreadPoolBusy       uint16 = 4  // 0x04
+	ResponseStatusErrorComm                  uint16 = 5  // 0x05
+	ResponseStatusNoProcessor                uint16 = 6  // 0x06
+	ResponseStatusTimeout                    uint16 = 7  // 0x07
+	ResponseStatusClientSendError            uint16 = 8  // 0x08
+	ResponseStatusCodecException             uint16 = 9  // 0x09
+	ResponseStatusConnectionClosed           uint16 = 16 // 0x10
+	ResponseStatusServerSerialException      uint16 = 17 // 0x11
+	ResponseStatusServerDeserializeException uint16 = 18 // 0x12
+
+	CodecExceptionCode       = 0
+	UnknownCode              = 2
+	DeserializeExceptionCode = 3
+	SuccessCode              = 200
+	PermissionDeniedCode     = 403
+	RouterUnavailableCode    = 404
+	InternalErrorCode        = 500
+	NoHealthUpstreamCode     = 502
+	UpstreamOverFlowCode     = 503
+	TimeoutExceptionCode     = 504
+	LimitExceededCode        = 509
+)
+
+func Mapping(httpStatusCode uint32) uint32 {
+	switch httpStatusCode {
+	case http.StatusOK:
+		return uint32(ResponseStatusSuccess)
+	case RouterUnavailableCode:
+		return uint32(ResponseStatusNoProcessor)
+	case NoHealthUpstreamCode:
+		return uint32(ResponseStatusConnectionClosed)
+	case UpstreamOverFlowCode:
+		return uint32(ResponseStatusServerThreadPoolBusy)
+	case CodecExceptionCode:
+		//Decode or Encode Error
+		return uint32(ResponseStatusCodecException)
+	case DeserializeExceptionCode:
+		//Hessian Exception
+		return uint32(ResponseStatusServerDeserializeException)
+	case TimeoutExceptionCode:
+		//Response Timeout
+		return uint32(ResponseStatusTimeout)
+	default:
+		return uint32(ResponseStatusUnknown)
+	}
 }

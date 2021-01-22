@@ -11,7 +11,7 @@ var (
 	errInvalidLength = errors.New("invalid length -1, ignore current key value pair")
 )
 
-func getEncodeHeaderLength(h Header) int {
+func GetEncodeHeaderLength(h Header) int {
 	n := 0
 	h.Range(func(key, value string) bool {
 		n += 8 + len(key) + len(value)
@@ -20,7 +20,7 @@ func getEncodeHeaderLength(h Header) int {
 	return n
 }
 
-func encodeHeader(buf Buffer, h Header) {
+func EncodeHeader(buf Buffer, h Header) {
 	h.Range(func(key, value string) bool {
 		encodeString(buf, key)
 		encodeString(buf, value)
@@ -28,7 +28,7 @@ func encodeHeader(buf Buffer, h Header) {
 	})
 }
 
-func decodeHeader(bytes []byte, h Header) (err error) {
+func DecodeHeader(bytes []byte, h Header) (err error) {
 	totalLen := len(bytes)
 	index := 0
 	var key, value []byte

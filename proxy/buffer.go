@@ -45,39 +45,57 @@ type Header interface {
 	Size() int
 }
 
-type CommonHeader map[string]string
+type CommonHeader struct {
+	m       map[string]string
+	Changed bool
+}
 
 // Get value of key
-func (h CommonHeader) Get(key string) (value string, ok bool) {
-	value, ok = h[key]
+func (h *CommonHeader) Get(key string) (value string, ok bool) {
+	if len(h.m) == 0 {
+		return "", false
+	}
+	value, ok = h.m[key]
 	return
 }
 
 // Set key-value pair in header map, the previous pair will be replaced if exists
-func (h CommonHeader) Set(key string, value string) {
-	h[key] = value
+func (h *CommonHeader) Set(key string, value string) {
+	h.Changed = true
+	if len(h.m) == 0 {
+		h.m = make(map[string]string, 8)
+	}
+	h.m[key] = value
 }
 
 // Add value for given key.
 // Multiple headers with the same key may be added with this function.
 // Use Set for setting a single header for the given key.
-func (h CommonHeader) Add(key string, value string) {
+func (h *CommonHeader) Add(key string, value string) {
 	panic("not supported")
 }
 
 // Del delete pair of specified key
-func (h CommonHeader) Del(key string) {
-	delete(h, key)
+func (h *CommonHeader) Del(key string) {
+	h.Changed = true
+	if len(h.m) == 0 {
+		return
+	}
+	delete(h.m, key)
 }
 
-func (h CommonHeader) Size() int {
-	return len(h)
+func (h *CommonHeader) Size() int {
+	return len(h.m)
 }
 
 // Range calls f sequentially for each key and value present in the map.
 // If f returns false, range stops the iteration.
-func (h CommonHeader) Range(f func(key, value string) bool) {
-	for k, v := range h {
+func (h *CommonHeader) Range(f func(key, value string) bool) {
+	if len(h.m) == 0 {
+		return
+	}
+
+	for k, v := range h.m {
 		// stop if f return false
 		if !f(k, v) {
 			break
@@ -120,6 +138,7 @@ type Buffer interface {
 	PutInt64(index int, value int64) error
 
 	Write(p []byte) (n int, err error)
+	WriteString(s string) (n int, err error)
 
 	ReadByte() (byte, error)
 	ReadUint16() (uint16, error)
@@ -396,6 +415,14 @@ func (b *byteBuffer) Write(p []byte) (n int, err error) {
 	}
 
 	return copy(b.buf[m:], p), nil
+}
+
+func (b *byteBuffer) WriteString(s string) (n int, err error) {
+	m, ok := b.tryGrowBySlice(len(s))
+	if !ok {
+		m = b.grow(len(s))
+	}
+	return copy(b.buf[m:], s), nil
 }
 
 func (b *byteBuffer) ReadByte() (byte, error) {

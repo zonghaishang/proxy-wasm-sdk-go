@@ -8,7 +8,7 @@ import (
 type RootContext interface {
 	OnVMStart(conf ConfigMap) bool
 	OnPluginStart(conf ConfigMap) bool
-	OnTick()
+	// OnTick()
 	OnVMDone() bool
 	OnLog()
 }
@@ -70,7 +70,7 @@ var (
 )
 
 // impl RootContext
-func (*DefaultRootContext) OnTick()                           {}
+//func (*DefaultRootContext) OnTick()                           {}
 func (*DefaultRootContext) OnVMStart(conf ConfigMap) bool     { return true }
 func (*DefaultRootContext) OnPluginStart(conf ConfigMap) bool { return true }
 func (*DefaultRootContext) OnVMDone() bool                    { return true }
@@ -85,13 +85,6 @@ func (c *DefaultFilterContext) OnDownStreamReceived(headers Header, data Buffer,
 func (c *DefaultFilterContext) OnUpstreamReceived(headers Header, data Buffer, trailers Header) types.Action {
 	return types.ActionContinue
 }
-
-//func (c *DefaultFilterContext) Context() context.Context {
-//	if c.ctx == nil {
-//		c.ctx = &internalContext{Context: context.Background()}
-//	}
-//	return c.ctx
-//}
 
 func (*DefaultFilterContext) OnFilterStreamDone() {}
 

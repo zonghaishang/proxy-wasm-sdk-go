@@ -4,7 +4,8 @@ package proxy
 func proxyOnVMStart(rootContextID uint32, vmConfigurationSize int) bool {
 	ctx, ok := this.rootContexts[rootContextID]
 	if !ok {
-		panic("invalid context on proxy_on_vm_start")
+		log.Errorf("invalid context on proxy_on_vm_start, rootContextId %d", rootContextID)
+		return false
 	}
 	this.setActiveContextID(rootContextID)
 	configBytes, err := getVMConfiguration(vmConfigurationSize)
@@ -13,14 +14,15 @@ func proxyOnVMStart(rootContextID uint32, vmConfigurationSize int) bool {
 		return false
 	}
 
-	return ctx.context.OnVMStart(CommonHeader(DecodeMap(configBytes)))
+	return ctx.context.OnVMStart(&CommonHeader{m: DecodeMap(configBytes)})
 }
 
 //export proxy_on_plugin_start
 func proxyOnPluginStart(rootContextID uint32, pluginConfigurationSize int) bool {
 	ctx, ok := this.rootContexts[rootContextID]
 	if !ok {
-		panic("invalid context on proxy_on_configure")
+		log.Errorf("invalid context on proxy_on_configure, rootContextId %d", rootContextID)
+		return false
 	}
 	this.setActiveContextID(rootContextID)
 	configBytes, err := getPluginConfiguration(pluginConfigurationSize)
@@ -28,5 +30,5 @@ func proxyOnPluginStart(rootContextID uint32, pluginConfigurationSize int) bool 
 		log.Errorf("failed to get plugin config, error: %s", err.Error())
 		return false
 	}
-	return ctx.context.OnPluginStart(CommonHeader(DecodeMap(configBytes)))
+	return ctx.context.OnPluginStart(&CommonHeader{m: DecodeMap(configBytes)})
 }

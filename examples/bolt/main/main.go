@@ -14,6 +14,73 @@
 
 package main
 
-func main() {
+import (
+	"github.com/zonghaishang/proxy-wasm-sdk-go/examples/bolt"
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
+	"math/rand"
+	"time"
+)
 
+func main() {
+	proxy.SetNewRootContext(rootContext)
+	proxy.SetNewProtocolContext(boltContext)
+}
+
+func rootContext(rootContextID uint32) proxy.RootContext {
+	return &boltProtocolContext{
+		bolt:      boltProtocol,
+		contextID: rootContextID,
+	}
+}
+
+func boltContext(rootContextID, contextID uint32) proxy.ProtocolContext {
+	return &boltProtocolContext{
+		bolt:      boltProtocol,
+		contextID: contextID,
+	}
+}
+
+var boltProtocol = bolt.NewBoltProtocol()
+
+type boltProtocolContext struct {
+	proxy.DefaultRootContext // notify on plugin start.
+	proxy.DefaultProtocolContext
+	bolt      proxy.Protocol
+	contextID uint32
+}
+
+// protocol feature
+
+func (proto *boltProtocolContext) Name() string {
+	return proto.bolt.Name()
+}
+
+func (proto *boltProtocolContext) Codec() proxy.Codec {
+	return proto.bolt.Codec()
+}
+
+func (proto *boltProtocolContext) KeepAlive() proxy.KeepAlive {
+	return proto.bolt
+}
+
+func (proto *boltProtocolContext) Hijacker() proxy.Hijacker {
+	return proto.bolt
+}
+
+// vm and plugin lifecycle
+
+func (proto *boltProtocolContext) OnVMStart(conf proxy.ConfigMap) bool {
+	rand.Seed(time.Now().UnixNano())
+
+	proxy.Log.Infof("proxy_on_vm_start from Go!, contextId %d", proto.contextID)
+
+	return true
+}
+
+func (proto *boltProtocolContext) OnPluginStart(conf proxy.ConfigMap) bool {
+	rand.Seed(time.Now().UnixNano())
+
+	proxy.Log.Infof("proxy_on_plugin_start from Go!, contextId %d", proto.contextID)
+
+	return true
 }
