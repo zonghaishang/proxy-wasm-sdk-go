@@ -16,7 +16,7 @@ func proxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) t
 			log.Errorf("failed to get request headers: %v", err)
 			return types.ActionContinue
 		}
-		header = CommonHeader(hs)
+		header = &CommonHeader{m: hs}
 		// update context header
 		attr := ctx.(Attribute)
 		attr.Set(types.AttributeKeyHeaderHolder, header)
@@ -77,7 +77,7 @@ func proxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
 			log.Errorf("failed to get request trailer: %v", err)
 			return types.ActionContinue
 		}
-		trailer = CommonHeader(trailers)
+		trailer = &CommonHeader{m: trailers}
 		// update context header
 		attr.Set(types.AttributeKeyTrailerHolder, trailer)
 	}
@@ -103,7 +103,7 @@ func proxyOnResponseHeaders(contextID uint32, numHeaders int, endOfStream bool) 
 			log.Errorf("failed to get response headers: %v", err)
 			return types.ActionContinue
 		}
-		header = CommonHeader(hs)
+		header = &CommonHeader{m: hs}
 		attr := ctx.(Attribute)
 		// update context header
 		attr.Set(types.AttributeKeyHeaderHolder, header)
@@ -164,7 +164,7 @@ func proxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
 			log.Errorf("failed to get request trailer: %v", err)
 			return types.ActionContinue
 		}
-		trailer = CommonHeader(trailers)
+		trailer = &CommonHeader{m: trailers}
 		// update context header
 		attr.Set(types.AttributeKeyTrailerHolder, trailer)
 	}
