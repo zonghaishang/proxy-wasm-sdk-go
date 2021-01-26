@@ -35,6 +35,7 @@ type ProtocolContext interface {
 	Hijacker() Hijacker   // protocol hijacker
 	Options() Options     // protocol options
 	OnProtocolDone()
+	OnLog()
 }
 
 // L4 layer extension (host not support now.)
@@ -139,6 +140,9 @@ func (*DefaultProtocolContext) Options() Options {
 }
 
 func (*DefaultProtocolContext) OnProtocolDone() {}
+
+func (*DefaultProtocolContext) OnLog() {
+}
 
 // attribute impl
 func (a *DefaultAttribute) Attr(key string) interface{} {

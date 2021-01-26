@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
-	stdlog "log"
+	stdout "log"
 )
 
 type (
@@ -56,7 +56,7 @@ func newRootEmulator(pluginConfiguration, vmConfiguration ConfigMap) *rootEmulat
 func (r *rootEmulator) ProxyLog(logLevel types.LogLevel, messageData *byte, messageSize int) types.Status {
 	str := parseString(messageData, messageSize)
 
-	stdlog.Printf("proxy_%s_log: %s", logLevel, str)
+	stdout.Printf("proxy_%s_log: %s", logLevel, str)
 	r.logs[logLevel] = append(r.logs[logLevel], str)
 	return types.StatusOK
 }
@@ -88,7 +88,7 @@ func (r *rootEmulator) rootEmulatorProxyGetBufferBytes(bt types.BufferType, star
 	}
 
 	if start >= len(buf) {
-		stdlog.Printf("start index out of range: %d (start) >= %d ", start, len(buf))
+		stdout.Printf("start index out of range: %d (start) >= %d ", start, len(buf))
 		return types.StatusBadArgument
 	}
 

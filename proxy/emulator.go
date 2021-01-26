@@ -55,6 +55,12 @@ var (
 	nextContextID = RootContextID + 1
 )
 
+func getNextContextID() (ret uint32) {
+	ret = nextContextID
+	nextContextID++
+	return
+}
+
 type hostEmulator struct {
 	*rootEmulator
 	*protocolEmulator
@@ -62,4 +68,10 @@ type hostEmulator struct {
 	*filterEmulator
 
 	effectiveContextID uint32
+}
+
+// impl HostEmulator
+func (*hostEmulator) Done() {
+	defer hostMux.Unlock()
+	defer VMStateReset()
 }
