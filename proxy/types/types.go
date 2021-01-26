@@ -173,6 +173,7 @@ const (
 	AttributeKeyTrailerHolder              = "trailer"
 	AttributeKeyDecodeCommand              = "decode_command"
 	AttributeKeyEncodeCommand              = "encode_command"
+	AttributeKeyEncodedBuffer              = "encoded_buffer"
 )
 
 // PoolMode is whether PingPong or multiplex

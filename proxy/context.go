@@ -49,18 +49,18 @@ type StreamContext interface {
 	OnLog()
 }
 
-type Attribute interface {
-	Attr(key string) interface{}
-	Set(key string, v interface{})
-	Remove(key string)
+type attribute interface {
+	attr(key string) interface{}
+	set(key string, v interface{})
+	remove(key string)
 }
 
 type (
 	DefaultRootContext     struct{}
-	DefaultFilterContext   struct{ DefaultAttribute }
+	DefaultFilterContext   struct{ defaultAttribute }
 	DefaultStreamContext   struct{}
-	DefaultProtocolContext struct{ DefaultAttribute }
-	DefaultAttribute       struct{ m map[string]interface{} }
+	DefaultProtocolContext struct{ defaultAttribute }
+	defaultAttribute       struct{ m map[string]interface{} }
 )
 
 var (
@@ -68,7 +68,7 @@ var (
 	_ FilterContext   = &DefaultFilterContext{}
 	_ StreamContext   = &DefaultStreamContext{}
 	_ ProtocolContext = &DefaultProtocolContext{}
-	_ Attribute       = &DefaultAttribute{}
+	_ attribute       = &defaultAttribute{}
 )
 
 // impl RootContext
@@ -145,14 +145,14 @@ func (*DefaultProtocolContext) OnLog() {
 }
 
 // attribute impl
-func (a *DefaultAttribute) Attr(key string) interface{} {
+func (a *defaultAttribute) attr(key string) interface{} {
 	if a.m == nil {
 		return nil
 	}
 	return a.m[key]
 }
 
-func (a *DefaultAttribute) Set(key string, v interface{}) {
+func (a *defaultAttribute) set(key string, v interface{}) {
 	remove := v == nil || reflect.ValueOf(v).IsNil()
 
 	if len(a.m) == 0 {
@@ -164,14 +164,14 @@ func (a *DefaultAttribute) Set(key string, v interface{}) {
 	}
 
 	if remove {
-		a.Remove(key)
+		a.remove(key)
 		return
 	}
 
 	a.m[key] = v
 }
 
-func (a *DefaultAttribute) Remove(key string) {
+func (a *defaultAttribute) remove(key string) {
 	if len(a.m) == 0 {
 		return
 	}

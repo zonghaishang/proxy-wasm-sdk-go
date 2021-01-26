@@ -18,8 +18,8 @@ func proxyOnRequestHeaders(contextID uint32, numHeaders int, endOfStream bool) t
 		}
 		header = &CommonHeader{m: hs}
 		// update context header
-		attr := ctx.(Attribute)
-		attr.Set(types.AttributeKeyHeaderHolder, header)
+		attr := ctx.(attribute)
+		attr.set(types.AttributeKeyHeaderHolder, header)
 	}
 
 	if endOfStream {
@@ -37,7 +37,7 @@ func proxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.
 	}
 	this.setActiveContextID(contextID)
 
-	attr := ctx.(Attribute)
+	attr := ctx.(attribute)
 
 	var body Buffer
 	if bodySize > 0 {
@@ -49,11 +49,11 @@ func proxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.
 
 		body = Allocate(bodyBytes)
 		// update context body buffer
-		attr.Set(types.AttributeKeyBufferHolder, body)
+		attr.set(types.AttributeKeyBufferHolder, body)
 	}
 
 	if endOfStream {
-		header := attr.Attr(types.AttributeKeyHeaderHolder)
+		header := attr.attr(types.AttributeKeyHeaderHolder)
 		return ctx.OnDownStreamReceived(header.(Header), body, nil)
 	}
 
@@ -68,7 +68,7 @@ func proxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
 	}
 	this.setActiveContextID(contextID)
 
-	attr := ctx.(Attribute)
+	attr := ctx.(attribute)
 
 	var trailer Header
 	if numTrailers > 0 {
@@ -79,11 +79,11 @@ func proxyOnRequestTrailers(contextID uint32, numTrailers int) types.Action {
 		}
 		trailer = &CommonHeader{m: trailers}
 		// update context header
-		attr.Set(types.AttributeKeyTrailerHolder, trailer)
+		attr.set(types.AttributeKeyTrailerHolder, trailer)
 	}
 
-	header := attr.Attr(types.AttributeKeyHeaderHolder)
-	body := attr.Attr(types.AttributeKeyBufferHolder)
+	header := attr.attr(types.AttributeKeyHeaderHolder)
+	body := attr.attr(types.AttributeKeyBufferHolder)
 
 	return ctx.OnDownStreamReceived(header.(Header), body.(Buffer), trailer)
 }
@@ -104,9 +104,9 @@ func proxyOnResponseHeaders(contextID uint32, numHeaders int, endOfStream bool) 
 			return types.ActionContinue
 		}
 		header = &CommonHeader{m: hs}
-		attr := ctx.(Attribute)
+		attr := ctx.(attribute)
 		// update context header
-		attr.Set(types.AttributeKeyHeaderHolder, header)
+		attr.set(types.AttributeKeyHeaderHolder, header)
 	}
 
 	if endOfStream {
@@ -124,7 +124,7 @@ func proxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types
 	}
 	this.setActiveContextID(contextID)
 
-	attr := ctx.(Attribute)
+	attr := ctx.(attribute)
 
 	var body Buffer
 	if bodySize > 0 {
@@ -136,11 +136,11 @@ func proxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types
 
 		body = Allocate(bodyBytes)
 		// update context body buffer
-		attr.Set(types.AttributeKeyBufferHolder, body)
+		attr.set(types.AttributeKeyBufferHolder, body)
 	}
 
 	if endOfStream {
-		header := attr.Attr(types.AttributeKeyHeaderHolder)
+		header := attr.attr(types.AttributeKeyHeaderHolder)
 		return ctx.OnUpstreamReceived(header.(Header), body, nil)
 	}
 
@@ -155,7 +155,7 @@ func proxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
 	}
 	this.setActiveContextID(contextID)
 
-	attr := ctx.(Attribute)
+	attr := ctx.(attribute)
 
 	var trailer Header
 	if numTrailers > 0 {
@@ -166,11 +166,11 @@ func proxyOnResponseTrailers(contextID uint32, numTrailers int) types.Action {
 		}
 		trailer = &CommonHeader{m: trailers}
 		// update context header
-		attr.Set(types.AttributeKeyTrailerHolder, trailer)
+		attr.set(types.AttributeKeyTrailerHolder, trailer)
 	}
 
-	header := attr.Attr(types.AttributeKeyHeaderHolder)
-	body := attr.Attr(types.AttributeKeyBufferHolder)
+	header := attr.attr(types.AttributeKeyHeaderHolder)
+	body := attr.attr(types.AttributeKeyBufferHolder)
 
 	return ctx.OnUpstreamReceived(header.(Header), body.(Buffer), trailer)
 }

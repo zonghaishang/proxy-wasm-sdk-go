@@ -182,7 +182,7 @@ func (h *filterEmulator) ProxyRemoveHeaderMapValue(mapType types.MapType, keyDat
 }
 
 // impl syscall.WasmHost: delegated from hostEmulator
-func (h *filterEmulator) httpHostEmulatorProxyGetHeaderMapPairs(mapType types.MapType, returnValueData **byte,
+func (h *filterEmulator) filterEmulatorProxyGetHeaderMapPairs(mapType types.MapType, returnValueData **byte,
 	returnValueSize *int) types.Status {
 	active := VMStateGetActiveContextID()
 	stream := h.filterStreams[active]

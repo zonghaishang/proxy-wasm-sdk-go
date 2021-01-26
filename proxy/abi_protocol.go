@@ -6,7 +6,7 @@ import (
 )
 
 //export proxy_decode_buffer_bytes
-func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.Status {
+func proxyDecodeBufferBytes(contextID uint32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
 		log.Errorf("failed to decode buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
@@ -20,7 +20,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	}
 
 	// convert data into an array of bytes to be parsed
-	data := parseByteSlice(*bufferData, len)
+	data := parseByteSlice(bufferData, len)
 	buffer := Allocate(data)
 	// call user extension implementation
 	cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
@@ -40,7 +40,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 		return types.StatusInternalFailure
 	}
 
-	ctx.(Attribute).Set(types.AttributeKeyDecodeCommand, cmd)
+	ctx.(attribute).set(types.AttributeKeyDecodeCommand, cmd)
 
 	decode := decodeCommandBuffer(cmd, buffer.Pos())
 	// report encode data
@@ -54,7 +54,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 }
 
 //export proxy_encode_buffer_bytes
-func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.Status {
+func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
 		log.Errorf("failed to decode buffer by protocol %s, context replacedId %v not found", ctx.Name(), contextID)
@@ -68,7 +68,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 	}
 
 	// convert data into an array of dataBytes to be parsed
-	data := parseByteSlice(*bufferData, len)
+	data := parseByteSlice(bufferData, len)
 	buffer := Allocate(data)
 
 	// bufferData format:
@@ -91,11 +91,13 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 		return types.StatusInternalFailure
 	}
 
+	attr := ctx.(attribute)
+
 	// find context cmd
-	cachedCmd := ctx.(Attribute).Attr(types.AttributeKeyDecodeCommand)
+	cachedCmd := attr.attr(types.AttributeKeyDecodeCommand)
 	if cachedCmd == nil {
 		// is heartbeat 、keep-alive or hijack ?
-		cachedCmd = ctx.(Attribute).Attr(types.AttributeKeyEncodeCommand)
+		cachedCmd = attr.attr(types.AttributeKeyEncodeCommand)
 	}
 
 	if cachedCmd == nil {
@@ -164,6 +166,8 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData **byte, len int) types.
 		return types.StatusInternalFailure
 	}
 
+	attr.set(types.AttributeKeyEncodedBuffer, encode)
+
 	// we don't need encode header again, the host side only pays attention to
 	// the buffer of encode and sends it directly to the remote host
 	proxyBuffer := encodeCommandBuffer(cmd, encode)
@@ -187,14 +191,14 @@ func proxyKeepAliveBufferBytes(contextID uint32, id uint64) types.Status {
 	this.setActiveContextID(contextID)
 
 	cmd := ctx.KeepAlive().KeepAlive(id)
-	attr := ctx.(Attribute)
-	attr.Set(types.AttributeKeyEncodeCommand, cmd)
+	attr := ctx.(attribute)
+	attr.set(types.AttributeKeyEncodeCommand, cmd)
 
 	return types.StatusOK
 }
 
 //export proxy_reply_keepalive_buffer_bytes
-func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData **byte, len int) types.Status {
+func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
 		log.Errorf("failed to decode reply keepalive buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
@@ -203,24 +207,27 @@ func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData **byte, len int
 
 	this.setActiveContextID(contextID)
 
-	// convert data into an array of bytes to be parsed
-	data := parseByteSlice(*bufferData, len)
-	buffer := Allocate(data)
-	cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
-	if err != nil {
-		log.Errorf("failed to decode reply keepalive request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
-		return types.StatusInternalFailure
-	}
+	cmd := ctx.(attribute).attr(types.AttributeKeyDecodeCommand)
+
+	//// todo how to obtain request ???
+	//// convert data into an array of bytes to be parsed
+	//data := parseByteSlice(bufferData, len)
+	//buffer := Allocate(data)
+	//cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
+	//if err != nil {
+	//	log.Errorf("failed to decode reply keepalive request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
+	//	return types.StatusInternalFailure
+	//}
 
 	resp := ctx.KeepAlive().ReplyKeepAlive(cmd.(Request))
-	attr := ctx.(Attribute)
-	attr.Set(types.AttributeKeyEncodeCommand, resp)
+	attr := ctx.(attribute)
+	attr.set(types.AttributeKeyEncodeCommand, resp)
 
 	return types.StatusOK
 }
 
 //export proxy_hijack_buffer_bytes
-func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData **byte, len int) types.Status {
+func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
 		log.Errorf("failed to decode hijack buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
@@ -229,17 +236,20 @@ func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData **by
 
 	this.setActiveContextID(contextID)
 
-	data := parseByteSlice(*bufferData, len)
-	buffer := Allocate(data)
-	cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
-	if err != nil {
-		log.Errorf("failed to decode hijack request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
-		return types.StatusInternalFailure
-	}
+	cmd := ctx.(attribute).attr(types.AttributeKeyDecodeCommand)
+
+	//// todo how to obtain request ???
+	//data := parseByteSlice(bufferData, len)
+	//buffer := Allocate(data)
+	//cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
+	//if err != nil {
+	//	log.Errorf("failed to decode hijack request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
+	//	return types.StatusInternalFailure
+	//}
 
 	resp := ctx.Hijacker().Hijack(cmd.(Request), statusCode)
-	attr := ctx.(Attribute)
-	attr.Set(types.AttributeKeyEncodeCommand, resp)
+	attr := ctx.(attribute)
+	attr.set(types.AttributeKeyEncodeCommand, resp)
 
 	return types.StatusOK
 }
