@@ -28,6 +28,10 @@ func proxyOnDone(contextID uint32) bool {
 		this.setActiveContextID(contextID)
 		ctx.OnFilterStreamDone()
 		return true
+	} else if ctx, ok := this.protocolStreams[contextID]; ok {
+		this.setActiveContextID(contextID)
+		ctx.OnProtocolDone()
+		return true
 	} else if ctx, ok := this.streams[contextID]; ok {
 		this.setActiveContextID(contextID)
 		ctx.OnStreamDone()
@@ -45,6 +49,8 @@ func proxyOnDone(contextID uint32) bool {
 func proxyOnDelete(contextID uint32) {
 	if _, ok := this.filterStreams[contextID]; ok {
 		delete(this.filterStreams, contextID)
+	} else if _, ok := this.protocolStreams[contextID]; ok {
+		delete(this.protocolStreams, contextID)
 	} else if _, ok := this.streams[contextID]; ok {
 		delete(this.streams, contextID)
 	} else if _, ok = this.rootContexts[contextID]; ok {
@@ -54,32 +60,3 @@ func proxyOnDelete(contextID uint32) {
 	}
 	delete(this.contextIDToRootID, contextID)
 }
-
-//type internalContext struct {
-//	context.Context
-//	values [types.ContextKeyEnd]interface{}
-//}
-//
-//func (c *internalContext) Value(key interface{}) interface{} {
-//	if contextKey, ok := key.(types.ContextKey); ok {
-//		return c.values[contextKey]
-//	}
-//	return c.Context.Value(key)
-//}
-//
-//func Get(ctx context.Context, key types.ContextKey) interface{} {
-//	if context, ok := ctx.(*internalContext); ok {
-//		return context.values[key]
-//	}
-//	return ctx.Value(key)
-//}
-//
-//func WithValue(parent context.Context, key types.ContextKey, value interface{}) context.Context {
-//	if context, ok := parent.(*internalContext); ok {
-//		context.values[key] = value
-//		return context
-//	}
-//	context := &internalContext{Context: parent}
-//	context.values[key] = value
-//	return context
-//}

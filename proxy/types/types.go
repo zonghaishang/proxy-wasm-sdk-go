@@ -91,8 +91,8 @@ const (
 	LogLevelWarn     LogLevel = 3
 	LogLevelError    LogLevel = 4
 	LogLevelCritical LogLevel = 5
-	LogLevelMax      LogLevel = 6
-	LogLevelFatal    LogLevel = 7
+	LogLevelFatal    LogLevel = 6
+	LogLevelMax      LogLevel = 7
 )
 
 const (

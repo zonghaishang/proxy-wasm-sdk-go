@@ -43,6 +43,8 @@ type Header interface {
 
 	// Size header key value pair count
 	Size() int
+
+	ToMap() map[string]string
 }
 
 type CommonHeader struct {
@@ -101,6 +103,13 @@ func (h *CommonHeader) Range(f func(key, value string) bool) {
 			break
 		}
 	}
+}
+
+func (h *CommonHeader) ToMap() map[string]string {
+	if len(h.m) == 0 {
+		h.m = make(map[string]string, 8)
+	}
+	return h.m
 }
 
 type Buffer interface {

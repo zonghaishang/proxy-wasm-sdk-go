@@ -28,12 +28,16 @@ type state struct {
 	activeContextID   uint32
 }
 
-var this = &state{
-	rootContexts:      make(map[uint32]*rootContextState),
-	filterStreams:     make(map[uint32]FilterContext),
-	protocolStreams:   make(map[uint32]ProtocolContext),
-	streams:           make(map[uint32]StreamContext),
-	contextIDToRootID: make(map[uint32]uint32),
+var this = newState()
+
+func newState() *state {
+	return &state{
+		rootContexts:      make(map[uint32]*rootContextState),
+		filterStreams:     make(map[uint32]FilterContext),
+		protocolStreams:   make(map[uint32]ProtocolContext),
+		streams:           make(map[uint32]StreamContext),
+		contextIDToRootID: make(map[uint32]uint32),
+	}
 }
 
 func SetNewRootContext(f func(contextID uint32) RootContext) {
@@ -123,4 +127,12 @@ func (s *state) registerHttpCallOut(calloutID uint32, callback HttpCalloutCallBa
 //go:inline
 func (s *state) setActiveContextID(contextID uint32) {
 	s.activeContextID = contextID
+}
+
+func VMStateReset() {
+	this = newState()
+}
+
+func VMStateGetActiveContextID() uint32 {
+	return this.activeContextID
 }

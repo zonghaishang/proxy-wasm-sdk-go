@@ -8,7 +8,7 @@ import (
 type RootContext interface {
 	OnVMStart(conf ConfigMap) bool
 	OnPluginStart(conf ConfigMap) bool
-	// OnTick()
+	OnTick()
 	OnVMDone() bool
 	OnLog()
 }
@@ -34,6 +34,7 @@ type ProtocolContext interface {
 	KeepAlive() KeepAlive // protocol keep alive
 	Hijacker() Hijacker   // protocol hijacker
 	Options() Options     // protocol options
+	OnProtocolDone()
 }
 
 // L4 layer extension (host not support now.)
@@ -70,7 +71,7 @@ var (
 )
 
 // impl RootContext
-//func (*DefaultRootContext) OnTick()                           {}
+func (*DefaultRootContext) OnTick()                           {}
 func (*DefaultRootContext) OnVMStart(conf ConfigMap) bool     { return true }
 func (*DefaultRootContext) OnPluginStart(conf ConfigMap) bool { return true }
 func (*DefaultRootContext) OnVMDone() bool                    { return true }
@@ -136,6 +137,8 @@ func (*DefaultProtocolContext) Hijacker() Hijacker {
 func (*DefaultProtocolContext) Options() Options {
 	return options
 }
+
+func (*DefaultProtocolContext) OnProtocolDone() {}
 
 // attribute impl
 func (a *DefaultAttribute) Attr(key string) interface{} {
