@@ -254,10 +254,6 @@ func getBuffer(bufType types.BufferType, start, maxSize int) ([]byte, types.Stat
 	var len int
 	switch status := syscall.ProxyGetBufferBytes(bufType, start, maxSize, &buffer, &len); status {
 	case types.StatusOK:
-		// is this correct handling...?
-		if buffer == nil {
-			return nil, types.StatusNotFound
-		}
 		return parseByteSlice(buffer, len), status
 	default:
 		return nil, status

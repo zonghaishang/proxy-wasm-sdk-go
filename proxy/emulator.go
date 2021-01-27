@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/syscall"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 	stdout "log"
 	"sync"
@@ -64,11 +65,40 @@ func getNextContextID() (ret uint32) {
 
 type hostEmulator struct {
 	*rootEmulator
+	*filterEmulator
 	*protocolEmulator
 	*networkEmulator
-	*filterEmulator
 
 	effectiveContextID uint32
+}
+
+func NewHostEmulator(opt *Option) HostEmulator {
+	root := newRootEmulator(opt.pluginConfiguration, opt.vmConfiguration)
+	filter := newFilterEmulator()
+	protocol := newProtocolEmulator()
+	network := newNetworkEmulator()
+	emulator := &hostEmulator{
+		root,
+		filter,
+		protocol,
+		network,
+		0,
+	}
+
+	hostMux.Lock() // acquire the lock of host emulation
+
+	syscall.RegisterWasmHost(emulator)
+
+	// set up state
+	SetNewRootContext(opt.newRootContext)
+	SetNewStreamContext(opt.newStreamContext)
+	SetNewFilterContext(opt.newFilterContext)
+	SetNewProtocolContext(opt.newProtocolContext)
+
+	// create root context: TODO: support multiple root contexts
+	proxyOnContextCreate(RootContextID, 0)
+
+	return emulator
 }
 
 // impl HostEmulator

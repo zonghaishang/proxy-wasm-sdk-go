@@ -72,7 +72,7 @@ func (proto *boltProtocolContext) Hijacker() proxy.Hijacker {
 func (proto *boltProtocolContext) OnVMStart(conf proxy.ConfigMap) bool {
 	rand.Seed(time.Now().UnixNano())
 
-	proxy.Log.Infof("proxy_on_vm_start from Go!, contextId %d", proto.contextID)
+	proxy.Log.Infof("proxy_on_vm_start from Go!, config %v", conf)
 
 	return true
 }
@@ -80,7 +80,7 @@ func (proto *boltProtocolContext) OnVMStart(conf proxy.ConfigMap) bool {
 func (proto *boltProtocolContext) OnPluginStart(conf proxy.ConfigMap) bool {
 	rand.Seed(time.Now().UnixNano())
 
-	proxy.Log.Infof("proxy_on_plugin_start from Go!, contextId %d", proto.contextID)
+	proxy.Log.Infof("proxy_on_plugin_start from Go!")
 
 	return true
 }

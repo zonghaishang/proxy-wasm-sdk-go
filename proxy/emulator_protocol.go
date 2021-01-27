@@ -25,6 +25,11 @@ type (
 	}
 )
 
+func newProtocolEmulator() *protocolEmulator {
+	host := &protocolEmulator{protocolStreams: map[uint32]*protocolStreamState{}}
+	return host
+}
+
 // protocol L7 level
 func (h *protocolEmulator) NewProtocolContext() (contextID uint32) {
 	contextID = getNextContextID()

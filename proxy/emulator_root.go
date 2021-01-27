@@ -87,6 +87,11 @@ func (r *rootEmulator) rootEmulatorProxyGetBufferBytes(bt types.BufferType, star
 		panic("unreachable: maybe a bug in this host emulation or SDK")
 	}
 
+	if len(buf) == 0 {
+		// not config found
+		return types.StatusOK
+	}
+
 	if start >= len(buf) {
 		stdout.Printf("start index out of range: %d (start) >= %d ", start, len(buf))
 		return types.StatusBadArgument

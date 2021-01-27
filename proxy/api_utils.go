@@ -62,6 +62,12 @@ func EncodeMap(pairs map[string]string) []byte {
 // DecodeMap decode map from byte slice
 // see EncodeMap for more detail.
 func DecodeMap(buf []byte) map[string]string {
+
+	// return default map
+	if len(buf) == 0 {
+		return map[string]string{}
+	}
+
 	// read pairs number
 	headers := binary.LittleEndian.Uint32(buf[0:4])
 	pairs := make(map[string]string, headers)

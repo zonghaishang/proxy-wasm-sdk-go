@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -50,6 +51,10 @@ type Header interface {
 type CommonHeader struct {
 	m       map[string]string
 	Changed bool
+}
+
+func NewConfigMap() ConfigMap {
+	return &CommonHeader{}
 }
 
 // Get value of key
@@ -110,6 +115,22 @@ func (h *CommonHeader) ToMap() map[string]string {
 		h.m = make(map[string]string, 8)
 	}
 	return h.m
+}
+
+func (h *CommonHeader) String() string {
+	if len(h.m) == 0 {
+		return "{}"
+	}
+	buf := bytes.Buffer{}
+	buf.WriteString("{")
+	h.Range(func(key, value string) bool {
+		buf.WriteString(key)
+		buf.WriteString("=")
+		buf.WriteString(value)
+		return true
+	})
+	buf.WriteString("}")
+	return buf.String()
 }
 
 type Buffer interface {
