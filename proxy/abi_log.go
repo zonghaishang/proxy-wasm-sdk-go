@@ -65,9 +65,9 @@ func proxyOnLog(contextID uint32) {
 	} else if ctx, ok := this.filterStreams[contextID]; ok {
 		this.setActiveContextID(contextID)
 		ctx.OnLog()
-	} else if ctx, ok := this.rootContexts[contextID]; ok {
+	} else if _, ok := this.rootContexts[contextID]; ok {
 		this.setActiveContextID(contextID)
-		ctx.context.OnLog()
+		// ctx.context.OnLog()
 	} else {
 		panic("invalid context on proxy_on_done")
 	}

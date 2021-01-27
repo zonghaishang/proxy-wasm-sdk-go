@@ -10,7 +10,7 @@ type RootContext interface {
 	OnPluginStart(conf ConfigMap) bool
 	OnTick()
 	OnVMDone() bool
-	OnLog()
+	//OnLog()
 }
 
 // L7 layer extension
@@ -76,8 +76,9 @@ func (*DefaultRootContext) OnTick()                           {}
 func (*DefaultRootContext) OnVMStart(conf ConfigMap) bool     { return true }
 func (*DefaultRootContext) OnPluginStart(conf ConfigMap) bool { return true }
 func (*DefaultRootContext) OnVMDone() bool                    { return true }
-func (*DefaultRootContext) OnLog() {
-}
+
+//func (*DefaultRootContext) OnLog() {
+//}
 
 // impl FilterContext
 func (c *DefaultFilterContext) OnDownStreamReceived(headers Header, data Buffer, trailers Header) types.Action {
