@@ -214,9 +214,8 @@ func NewBuffer(size int) Buffer {
 }
 
 func WrapBuffer(buf []byte) Buffer {
-	l := len(buf)
 	return &byteBuffer{
-		buf:       make([]byte, l, l),
+		buf:       buf,
 		pos:       0,
 		mark:      resetOffMark,
 		byteOrder: binary.BigEndian,
