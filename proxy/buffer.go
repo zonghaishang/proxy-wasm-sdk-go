@@ -57,6 +57,10 @@ func NewConfigMap() ConfigMap {
 	return &CommonHeader{}
 }
 
+func NewHeader() Header {
+	return &CommonHeader{}
+}
+
 // Get value of key
 func (h *CommonHeader) Get(key string) (value string, ok bool) {
 	if len(h.m) == 0 {
@@ -209,11 +213,10 @@ func NewBuffer(size int) Buffer {
 	}
 }
 
-func Allocate(buf []byte) Buffer {
+func WrapBuffer(buf []byte) Buffer {
 	l := len(buf)
 	return &byteBuffer{
-		// be sure to update the index on write, where the length is set to 0
-		buf:       make([]byte, 0, l),
+		buf:       make([]byte, l, l),
 		pos:       0,
 		mark:      resetOffMark,
 		byteOrder: binary.BigEndian,

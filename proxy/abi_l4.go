@@ -30,7 +30,7 @@ func proxyOnDownstreamData(contextID uint32, dataSize int, endOfStream bool) typ
 		return types.ActionContinue
 	}
 
-	return ctx.OnDownstreamData(Allocate(data), endOfStream)
+	return ctx.OnDownstreamData(WrapBuffer(data), endOfStream)
 }
 
 //export proxy_on_downstream_connection_close
@@ -61,7 +61,7 @@ func proxyOnUpstreamData(contextID uint32, dataSize int, endOfStream bool) types
 		return types.ActionContinue
 	}
 
-	return ctx.OnUpstreamData(Allocate(data), endOfStream)
+	return ctx.OnUpstreamData(WrapBuffer(data), endOfStream)
 }
 
 //export proxy_on_upstream_connection_close

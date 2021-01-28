@@ -47,7 +47,7 @@ func proxyOnRequestBody(contextID uint32, bodySize int, endOfStream bool) types.
 			return types.ActionContinue
 		}
 
-		body = Allocate(bodyBytes)
+		body = WrapBuffer(bodyBytes)
 		// update context body buffer
 		attr.set(types.AttributeKeyBufferHolder, body)
 	}
@@ -134,7 +134,7 @@ func proxyOnResponseBody(contextID uint32, bodySize int, endOfStream bool) types
 			return types.ActionContinue
 		}
 
-		body = Allocate(bodyBytes)
+		body = WrapBuffer(bodyBytes)
 		// update context body buffer
 		attr.set(types.AttributeKeyBufferHolder, body)
 	}

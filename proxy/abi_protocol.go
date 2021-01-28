@@ -21,7 +21,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 
 	// convert data into an array of bytes to be parsed
 	data := parseByteSlice(bufferData, len)
-	buffer := Allocate(data)
+	buffer := WrapBuffer(data)
 	// call user extension implementation
 	cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
 	if err != nil {
@@ -69,7 +69,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 
 	// convert data into an array of dataBytes to be parsed
 	data := parseByteSlice(bufferData, len)
-	buffer := Allocate(data)
+	buffer := WrapBuffer(data)
 
 	// bufferData format:
 	// encoded header map | Flag | replaceId, id | (Timeout|GetStatus) | drain length | raw dataBytes
@@ -151,7 +151,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 	}
 
 	if dataBytes > 0 {
-		cmd.SetData(Allocate(data[buffer.Pos():]))
+		cmd.SetData(WrapBuffer(data[buffer.Pos():]))
 	}
 
 	// override cached request
@@ -212,7 +212,7 @@ func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData *byte, len int)
 	//// todo how to obtain request ???
 	//// convert data into an array of bytes to be parsed
 	//data := parseByteSlice(bufferData, len)
-	//buffer := Allocate(data)
+	//buffer := WrapBuffer(data)
 	//cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
 	//if err != nil {
 	//	log.Errorf("failed to decode reply keepalive request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
@@ -240,7 +240,7 @@ func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData *byt
 
 	//// todo how to obtain request ???
 	//data := parseByteSlice(bufferData, len)
-	//buffer := Allocate(data)
+	//buffer := WrapBuffer(data)
 	//cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
 	//if err != nil {
 	//	log.Errorf("failed to decode hijack request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)

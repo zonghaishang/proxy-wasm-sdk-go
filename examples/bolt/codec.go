@@ -108,7 +108,7 @@ func decodeRequest(ctx context.Context, data proxy.Buffer, oneway bool) (cmd pro
 	}
 	if contentLen > 0 {
 		request.rawContent = request.rawData[contentIndex:]
-		request.Content = proxy.Allocate(request.rawContent)
+		request.Content = proxy.WrapBuffer(request.rawContent)
 	}
 	return request, err
 }
@@ -171,7 +171,7 @@ func decodeResponse(ctx context.Context, data proxy.Buffer) (cmd proxy.Command, 
 	}
 	if contentLen > 0 {
 		response.rawContent = response.rawData[contentIndex:]
-		response.Content = proxy.Allocate(response.rawContent)
+		response.Content = proxy.WrapBuffer(response.rawContent)
 	}
 	return response, err
 }

@@ -132,11 +132,11 @@ func (h *protocolEmulator) protocolEmulatorProxySetBufferBytes(bt types.BufferTy
 	ctx := this.protocolStreams[active]
 	switch bt {
 	case types.BufferTypeDecodeData:
-		stream.decodedProxyBuf = Allocate(body)
+		stream.decodedProxyBuf = WrapBuffer(body)
 		stream.decodedCmd = ctx.(attribute).attr(types.AttributeKeyDecodeCommand).(Command)
 		// stream.decodedBuf =
 	case types.BufferTypeEncodeData:
-		stream.encodedProxyBuf = Allocate(body)
+		stream.encodedProxyBuf = WrapBuffer(body)
 		stream.encodedBuf = ctx.(attribute).attr(types.AttributeKeyEncodedBuffer).(Buffer)
 	default:
 		panic("unreachable: maybe a bug in this host emulation or SDK")
