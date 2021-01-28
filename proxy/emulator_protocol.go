@@ -9,6 +9,7 @@ import (
 type (
 	protocolEmulator struct {
 		protocolStreams map[uint32]*protocolStreamState
+		streamId        uint64
 	}
 	protocolStreamState struct {
 		decodedCmd      Command // decoded command
@@ -26,7 +27,7 @@ type (
 )
 
 func newProtocolEmulator() *protocolEmulator {
-	host := &protocolEmulator{protocolStreams: map[uint32]*protocolStreamState{}}
+	host := &protocolEmulator{protocolStreams: map[uint32]*protocolStreamState{}, streamId: 1}
 	return host
 }
 
@@ -36,6 +37,10 @@ func (h *protocolEmulator) NewProtocolContext() (contextID uint32) {
 	proxyOnContextCreate(contextID, RootContextID)
 	h.protocolStreams[contextID] = &protocolStreamState{Status: types.StatusOK}
 	return
+}
+
+func (h *protocolEmulator) CurrentStreamId() uint64 {
+	return h.streamId
 }
 
 func (h *protocolEmulator) Decode(contextID uint32, data Buffer) (Command, error) {
@@ -60,9 +65,59 @@ func (h *protocolEmulator) Encode(contextID uint32, cmd Command) (Buffer, error)
 		stdout.Fatalf("invalid context id: %d", contextID)
 	}
 
-	bufferData := cmd.GetData().Bytes()
-	cs.Status = proxyEncodeBufferBytes(contextID, &bufferData[0], cmd.GetData().Len())
+	buf := AllocateBuffer()
+	// encode data format:
+	// encoded header map | Flag | replaceId, id | (Timeout|GetStatus) | drain length | raw dataBytes
+	headerBytes := 0
+	if cmd.GetHeader().Size() > 0 {
+		headerBytes = GetEncodeHeaderLength(cmd.GetHeader())
+	}
+	// encode header map
+	buf.WriteInt(headerBytes)
+	// encoded header map
+	if headerBytes > 0 {
+		EncodeHeader(buf, cmd.GetHeader())
+	}
 
+	flagIndex := buf.Len()
+	// should copy raw bytes
+	flag := CopyRawBytesFlag
+	if cmd.IsHeartbeat() {
+		flag = flag | HeartBeatFlag
+	}
+	buf.WriteByte(flag)
+
+	// generate stream id
+	h.streamId += 2
+	// write replaced id
+	buf.WriteUint64(h.streamId)
+	// write command id
+	buf.WriteUint64(cmd.CommandId())
+
+	if req, ok := cmd.(Request); ok {
+		flag = flag | RpcRequestFlag
+		if req.IsOneWay() {
+			flag = flag | RpcOnewayFlag
+		}
+		// update request flag
+		buf.PutByte(flagIndex, flag)
+		// write timeout
+		buf.WriteUint32(req.GetTimeout())
+	} else if resp, ok := cmd.(Response); ok {
+		// write status code
+		buf.WriteUint32(resp.GetStatus())
+	}
+
+	dataBytes := cmd.GetData().Len()
+	// write drain length
+	buf.WriteInt(dataBytes)
+	if dataBytes > 0 {
+		// write raw dataBytes
+		buf.Write(cmd.GetData().Bytes())
+	}
+
+	// invoke the plugin encode
+	cs.Status = proxyEncodeBufferBytes(contextID, &buf.Bytes()[0], buf.Len())
 	if cs.Status == types.StatusOK {
 		return cs.encodedBuf, nil
 	}
@@ -154,4 +209,11 @@ func (h *protocolEmulator) protocolEmulatorProxyReplyKeepAlive() Response {
 	active := VMStateGetActiveContextID()
 	ctx := this.protocolStreams[active]
 	return ctx.(attribute).attr(types.AttributeKeyEncodeCommand).(Response)
+}
+
+// impl HostEmulator
+func (h *protocolEmulator) CompleteProtocolContext(contextID uint32) {
+	proxyOnLog(contextID)
+	proxyOnDone(contextID)
+	proxyOnDelete(contextID)
 }

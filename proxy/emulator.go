@@ -29,6 +29,10 @@ type HostEmulator interface {
 	ReplyKeepAlive(contextID uint32, request Request) Response
 	// hijacker
 	Hijack(contextID uint32, request Request, code uint32) Response
+	// easy for test only
+	CurrentStreamId() uint64
+	// finish protocol pipeline
+	CompleteProtocolContext(contextID uint32)
 
 	// filter L7 level
 	NewFilterContext() (contextID uint32)
@@ -46,8 +50,8 @@ type HostEmulator interface {
 	GetResponseHeaders(contextID uint32) (headers map[string]string)
 	GetResponseBody(contextID uint32) []byte
 
-	CompleteHttpStream(contextID uint32)
 	GetCurrentStreamAction(contextID uint32) types.Action
+	CompleteFilterContext(contextID uint32)
 
 	// network
 }

@@ -84,6 +84,8 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 	if headerBytes > 0 {
 		DecodeHeader(data[4:4+headerBytes], headers)
 	}
+	// skip header bytes
+	buffer.Drain(headerBytes)
 
 	flag, err := buffer.ReadByte()
 	if err != nil {
@@ -115,8 +117,8 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 	var cmd Command
 	cmdType := flag >> 6
 	switch cmdType {
-	case types.RequestType:
-	case types.RequestOneWayType:
+	case types.RequestType,
+		types.RequestOneWayType:
 		cmd, ok = cachedCmd.(Request)
 		if !ok {
 			log.Errorf("cached cmd should be Request, maybe a bug occurred, contextId: %v", contextID)
@@ -247,7 +249,7 @@ func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData *byt
 	//	return types.StatusInternalFailure
 	//}
 
-	resp := ctx.Hijacker().Hijack(cmd.(Request), statusCode)
+	resp := ctx.Hijacker().Hijack(cmd.(Request), Mapping(statusCode))
 	attr := ctx.(attribute)
 	attr.set(types.AttributeKeyEncodeCommand, resp)
 
@@ -275,7 +277,8 @@ func decodeCommandBuffer(cmd Command, drainBytes int) Buffer {
 	// should copy raw bytes
 	flag = flag | CopyRawBytesFlag
 
-	flagIndex := buf.Pos()
+	// record flag write index
+	flagIndex := buf.Len()
 	// write flag
 	buf.WriteByte(flag)
 	// write id
@@ -321,7 +324,8 @@ func encodeCommandBuffer(cmd Command, encode Buffer) Buffer {
 	// should copy raw bytes
 	flag = flag | CopyRawBytesFlag
 
-	flagIndex := buf.Pos()
+	// record flag index
+	flagIndex := buf.Len()
 	// write flag
 	buf.WriteByte(flag)
 	// write id

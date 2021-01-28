@@ -344,7 +344,7 @@ func (h *filterEmulator) GetResponseBody(contextID uint32) []byte {
 }
 
 // impl HostEmulator
-func (h *filterEmulator) CompleteHttpStream(contextID uint32) {
+func (h *filterEmulator) CompleteFilterContext(contextID uint32) {
 	proxyOnLog(contextID)
 	proxyOnDone(contextID)
 	proxyOnDelete(contextID)

@@ -29,7 +29,7 @@ func TestBolt(t *testing.T) {
 	// invoke downstream decode
 	ctxId := host.NewProtocolContext()
 	// bolt plugin decode will be invoked
-	cmd, err := host.Decode(ctxId, proxy.WrapBuffer(decodedRequestBytes()))
+	cmd, err := host.Decode(ctxId, proxy.WrapBuffer(decodedRequestBytes(uint32(host.CurrentStreamId()))))
 	if err != nil {
 		t.Fatalf("failed to invoke host decode request buffer, err: %v", err)
 	}
@@ -38,12 +38,25 @@ func TestBolt(t *testing.T) {
 		t.Fatalf("decode request type error, expect *bolt.Request, actual %v", reflect.TypeOf(cmd))
 	}
 
+	// invoke upstream encode
+	upstreamBuf, err := host.Encode(ctxId, cmd)
+	if err != nil {
+		t.Fatalf("failed to invoke host encode request buffer, err: %v", err)
+	}
+
+	// check upstream content with downstream request
+	if !reflect.DeepEqual(decodedRequestBytes(uint32(host.CurrentStreamId())), upstreamBuf.Bytes()) {
+		t.Fatalf("failed to invoke host encode request buffer, err: %v", err)
+	}
+
+	// complete protocol pipeline
+	host.CompleteProtocolContext(ctxId)
 }
 
-func decodedRequestBytes() []byte {
+func decodedRequestBytes(id uint32) []byte {
 	rpcHeader := proxy.NewHeader()
 	rpcHeader.Set("service", "com.alipay.demo.HelloService")
-	request := bolt.NewRpcRequest(1, rpcHeader, proxy.WrapBuffer([]byte("bolt body")))
+	request := bolt.NewRpcRequest(id, rpcHeader, proxy.WrapBuffer([]byte("bolt body")))
 	buf, err := bolt.NewBoltProtocol().Codec().Encode(context.TODO(), request)
 	if err != nil {
 		panic("failed to encode bolt request, err: " + err.Error())
