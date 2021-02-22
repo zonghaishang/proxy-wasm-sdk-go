@@ -26,7 +26,7 @@ func TestBolt(t *testing.T) {
 	// invoke host plugin
 	host.StartPlugin()
 
-	// invoke downstream decode
+	// 1. invoke downstream decode
 	ctxId := host.NewProtocolContext()
 	// bolt plugin decode will be invoked
 	cmd, err := host.Decode(ctxId, proxy.WrapBuffer(decodedRequestBytes(uint32(host.CurrentStreamId()))))
@@ -38,7 +38,7 @@ func TestBolt(t *testing.T) {
 		t.Fatalf("decode request type error, expect *bolt.Request, actual %v", reflect.TypeOf(cmd))
 	}
 
-	// invoke upstream encode
+	// 2. invoke upstream encode
 	upstreamBuf, err := host.Encode(ctxId, cmd)
 	if err != nil {
 		t.Fatalf("failed to invoke host encode request buffer, err: %v", err)

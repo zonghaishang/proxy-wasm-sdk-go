@@ -23,7 +23,7 @@ const (
 	StatusEmpty           Status = 7
 	StatusCasMismatch     Status = 8
 	StatusInternalFailure Status = 10
-	StatusNeedMoreData    Status = 15
+	StatusNeedMoreData    Status = 99
 )
 
 type StreamType uint32
