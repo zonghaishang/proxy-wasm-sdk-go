@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	ProtocolName    string = "bolt" // protocol
+	ProtocolName    string = "x-bolt" // protocol
 	ProtocolCode    byte   = 1
 	ProtocolVersion byte   = 1
 
