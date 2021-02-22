@@ -100,6 +100,7 @@ func (s *state) createProtocolContext(contextID uint32, rootContextID uint32) {
 	ctx := s.newProtocolContext(rootContextID, contextID)
 	s.contextIDToRootID[contextID] = rootContextID
 	s.protocolStreams[contextID] = ctx
+
 }
 
 func (s *state) createStreamContext(contextID uint32, rootContextID uint32) {

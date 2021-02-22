@@ -3,8 +3,8 @@
 .PHONY: build build-image lint test
 
 build:
-	@rm -rf ./examples/${name}/build
 	mkdir -p examples/${name}/build
+	@rm -rf examples/${name}/build/${name}-go.wasm
 	tinygo build -o ./examples/${name}/build/${name}-go.wasm -scheduler=none -target=wasi ./examples/${name}/main/main.go
 
 build-image:

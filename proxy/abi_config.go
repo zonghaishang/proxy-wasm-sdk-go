@@ -17,7 +17,7 @@ func proxyOnVMStart(rootContextID uint32, vmConfigurationSize int) bool {
 	return ctx.context.OnVMStart(&CommonHeader{m: DecodeMap(configBytes)})
 }
 
-//export proxy_on_plugin_start
+//export proxy_on_configure
 func proxyOnPluginStart(rootContextID uint32, pluginConfigurationSize int) bool {
 	ctx, ok := this.rootContexts[rootContextID]
 	if !ok {
@@ -30,5 +30,6 @@ func proxyOnPluginStart(rootContextID uint32, pluginConfigurationSize int) bool 
 		log.Errorf("failed to get plugin config, error: %s", err.Error())
 		return false
 	}
+
 	return ctx.context.OnPluginStart(&CommonHeader{m: DecodeMap(configBytes)})
 }

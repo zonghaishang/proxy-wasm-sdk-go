@@ -17,8 +17,6 @@ package main
 import (
 	"github.com/zonghaishang/proxy-wasm-sdk-go/examples/bolt"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
-	"math/rand"
-	"time"
 )
 
 func main() {
@@ -70,7 +68,6 @@ func (proto *boltProtocolContext) Hijacker() proxy.Hijacker {
 // vm and plugin lifecycle
 
 func (proto *boltProtocolContext) OnVMStart(conf proxy.ConfigMap) bool {
-	rand.Seed(time.Now().UnixNano())
 
 	proxy.Log.Infof("proxy_on_vm_start from Go!, config %v", conf)
 
@@ -78,7 +75,6 @@ func (proto *boltProtocolContext) OnVMStart(conf proxy.ConfigMap) bool {
 }
 
 func (proto *boltProtocolContext) OnPluginStart(conf proxy.ConfigMap) bool {
-	rand.Seed(time.Now().UnixNano())
 
 	proxy.Log.Infof("proxy_on_plugin_start from Go!")
 
