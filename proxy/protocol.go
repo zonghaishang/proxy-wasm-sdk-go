@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
-	"net/http"
 	"sync/atomic"
 )
 
@@ -126,7 +125,7 @@ const (
 
 func Mapping(httpStatusCode uint32) uint32 {
 	switch httpStatusCode {
-	case http.StatusOK:
+	case SuccessCode:
 		return uint32(ResponseStatusSuccess)
 	case RouterUnavailableCode:
 		return uint32(ResponseStatusNoProcessor)

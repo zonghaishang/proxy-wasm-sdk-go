@@ -3,9 +3,13 @@
 .PHONY: build build-image lint test
 
 build:
+	@rm -rf ./examples/${name}/build
+	mkdir -p examples/${name}/build
 	tinygo build -o ./examples/${name}/build/${name}-go.wasm -scheduler=none -target=wasi ./examples/${name}/main/main.go
 
 build-image:
+	@rm -rf ./examples/${name}/build
+	mkdir -p examples/${name}/build
 	docker run -it -w /tmp/build-proxy-wasm-go -v $(shell pwd):/tmp/build-proxy-wasm-go tinygo/tinygo:0.16.0 \
 		tinygo build -o /tmp/build-proxy-wasm-go/examples/${name}/build/${name}-go.wasm -scheduler=none -target=wasi \
 		/tmp/build-proxy-wasm-go/examples/${name}/main/main.go
