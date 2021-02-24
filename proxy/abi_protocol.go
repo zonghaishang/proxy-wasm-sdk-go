@@ -9,9 +9,10 @@ import (
 func proxyDecodeBufferBytes(contextID uint32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode buffer, contextId %d not found", contextID)
 		return types.StatusInternalFailure
 	}
+
 	this.setActiveContextID(contextID)
 
 	if len <= 0 {
@@ -57,7 +58,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode buffer by protocol %s, context replacedId %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode buffer, context replacedId %v not found", contextID)
 		return types.StatusInternalFailure
 	}
 	this.setActiveContextID(contextID)
@@ -186,7 +187,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 func proxyKeepAliveBufferBytes(contextID uint32, id uint64) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode keepalive buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode keepalive buffer, contextId %v not found", contextID)
 		return types.StatusInternalFailure
 	}
 
@@ -203,7 +204,7 @@ func proxyKeepAliveBufferBytes(contextID uint32, id uint64) types.Status {
 func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode reply keepalive buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode reply keepalive buffer, contextId %v not found", contextID)
 		return types.StatusInternalFailure
 	}
 
@@ -232,7 +233,7 @@ func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData *byte, len int)
 func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode hijack buffer by protocol %s, contextId %v not found", ctx.Name(), contextID)
+		log.Errorf("failed to decode hijack buffer, contextId %v not found", contextID)
 		return types.StatusInternalFailure
 	}
 
