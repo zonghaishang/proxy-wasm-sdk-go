@@ -123,7 +123,7 @@ const (
 	LimitExceededCode        = 509
 )
 
-func Mapping(httpStatusCode uint32) uint32 {
+func Mapping(httpStatusCode int32) uint32 {
 	switch httpStatusCode {
 	case SuccessCode:
 		return uint32(ResponseStatusSuccess)

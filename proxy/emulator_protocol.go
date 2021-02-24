@@ -169,7 +169,7 @@ func (h *protocolEmulator) Hijack(contextID uint32, request Request, code uint32
 	// todo: buffer data format should be
 	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes
 	bufferData := request.GetData().Bytes()[0]
-	cs.Status = proxyHijackBufferBytes(contextID, code, &bufferData, request.GetData().Len())
+	cs.Status = proxyHijackBufferBytes(contextID, int32(code), &bufferData, request.GetData().Len())
 	if cs.Status == types.StatusOK {
 		cs.response = h.protocolEmulatorProxyReplyKeepAlive()
 		return cs.response

@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
+	"reflect"
 )
 
 //export proxy_decode_buffer_bytes
@@ -43,7 +44,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 
 	ctx.(attribute).set(types.AttributeKeyDecodeCommand, cmd)
 
-	decode := decodeCommandBuffer(cmd, buffer.Pos())
+	decode := decodeCommandBuffer(cmd, buffer.Pos(), contextID)
 	// report encode data
 	err = setDecodeBuffer(decode.Bytes())
 	if err != nil {
@@ -98,6 +99,14 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 
 	// find context cmd
 	cachedCmd := attr.attr(types.AttributeKeyDecodeCommand)
+
+	if cmd := attr.attr(types.AttributeKeyEncodeCommand); cmd != nil {
+		// reply heartbeat ?
+		if parsedCmd, ok := cmd.(Command); ok && parsedCmd.IsHeartbeat() {
+			cachedCmd = cmd
+		}
+	}
+
 	if cachedCmd == nil {
 		// is heartbeat 、keep-alive or hijack ?
 		cachedCmd = attr.attr(types.AttributeKeyEncodeCommand)
@@ -122,14 +131,14 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 		types.RequestOneWayType:
 		cmd, ok = cachedCmd.(Request)
 		if !ok {
-			log.Errorf("cached cmd should be Request, maybe a bug occurred, contextId: %v", contextID)
+			log.Errorf("cached cmd should be Request, maybe a bug occurred, contextId: %v, actual type %v", contextID, reflect.TypeOf(cachedCmd))
 			return types.StatusInternalFailure
 		}
 
 	case types.ResponseType:
 		cmd, ok = cachedCmd.(Response)
 		if !ok {
-			log.Errorf("cached cmd should be Response, maybe a bug occurred, contextId: %v", contextID)
+			log.Errorf("cached cmd should be Response, maybe a bug occurred, contextId: %v, actual type %v", contextID, reflect.TypeOf(cachedCmd))
 			return types.StatusInternalFailure
 		}
 	default:
@@ -212,16 +221,6 @@ func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData *byte, len int)
 
 	cmd := ctx.(attribute).attr(types.AttributeKeyDecodeCommand)
 
-	//// todo how to obtain request ???
-	//// convert data into an array of bytes to be parsed
-	//data := parseByteSlice(bufferData, len)
-	//buffer := WrapBuffer(data)
-	//cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
-	//if err != nil {
-	//	log.Errorf("failed to decode reply keepalive request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
-	//	return types.StatusInternalFailure
-	//}
-
 	resp := ctx.KeepAlive().ReplyKeepAlive(cmd.(Request))
 	attr := ctx.(attribute)
 	attr.set(types.AttributeKeyEncodeCommand, resp)
@@ -230,7 +229,7 @@ func proxyReplyKeepAliveBufferBytes(contextID uint32, bufferData *byte, len int)
 }
 
 //export proxy_hijack_buffer_bytes
-func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData *byte, len int) types.Status {
+func proxyHijackBufferBytes(contextID uint32, statusCode int32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
 		log.Errorf("failed to decode hijack buffer, contextId %v not found", contextID)
@@ -241,15 +240,6 @@ func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData *byt
 
 	cmd := ctx.(attribute).attr(types.AttributeKeyDecodeCommand)
 
-	//// todo how to obtain request ???
-	//data := parseByteSlice(bufferData, len)
-	//buffer := WrapBuffer(data)
-	//cmd, err := ctx.Codec().Decode(context.TODO(), buffer)
-	//if err != nil {
-	//	log.Errorf("failed to decode hijack request by protocol %s, contextId %v, err %v", ctx.Name(), contextID, err)
-	//	return types.StatusInternalFailure
-	//}
-
 	resp := ctx.Hijacker().Hijack(cmd.(Request), Mapping(statusCode))
 	attr := ctx.(attribute)
 	attr.set(types.AttributeKeyEncodeCommand, resp)
@@ -257,7 +247,7 @@ func proxyHijackBufferBytes(contextID uint32, statusCode uint32, bufferData *byt
 	return types.StatusOK
 }
 
-func decodeCommandBuffer(cmd Command, drainBytes int) Buffer {
+func decodeCommandBuffer(cmd Command, drainBytes int, contextID uint32) Buffer {
 	// bufferData format:
 	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes length | raw bytes
 	headers := cmd.GetHeader()
@@ -300,10 +290,16 @@ func decodeCommandBuffer(cmd Command, drainBytes int) Buffer {
 
 	buf.WriteInt(drainBytes)
 	if drainBytes > 0 {
+		contentBytes := 0
+		if cmd.GetData() != nil {
+			contentBytes = cmd.GetData().Len()
+		}
 		// write decode content length
-		buf.WriteInt(cmd.GetData().Len())
+		buf.WriteInt(contentBytes)
 		// write decode content, protocol header is not included
-		buf.Write(cmd.GetData().Bytes())
+		if contentBytes > 0 {
+			buf.Write(cmd.GetData().Bytes())
+		}
 	}
 
 	return buf
