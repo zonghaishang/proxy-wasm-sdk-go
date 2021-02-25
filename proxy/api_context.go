@@ -51,12 +51,19 @@ func proxyOnDelete(contextID uint32) {
 		delete(this.filterStreams, contextID)
 	} else if _, ok := this.protocolStreams[contextID]; ok {
 		delete(this.protocolStreams, contextID)
+		// debug info
+		//buf := bytes.Buffer{}
+		//for id, _ := range this.protocolStreams {
+		//	buf.WriteString(strconv.Itoa(int(id)))
+		//	buf.WriteString(",")
+		//}
+		//log.Infof("delete context id %d, remain: %s", contextID, buf.String())
 	} else if _, ok := this.streams[contextID]; ok {
 		delete(this.streams, contextID)
 	} else if _, ok = this.rootContexts[contextID]; ok {
 		delete(this.rootContexts, contextID)
 	} else {
-		panic("invalid context on proxy_on_done")
+		panic("invalid context on proxy_on_delete")
 	}
 	delete(this.contextIDToRootID, contextID)
 }

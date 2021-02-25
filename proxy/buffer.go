@@ -700,7 +700,9 @@ func (b *byteBuffer) grow(n int) int {
 		panic(BufferTooLarge)
 	} else {
 		// Not enough space anywhere, we need to allocate.
+		//log.Infof("allocate len %v, cap %v", m +n, 2*c+n)
 		buf := make([]byte, m+n, 2*c+n)
+		//log.Infof("allocate len %v, cap %v, success", m +n, 2*c+n)
 		copy(buf, b.buf[b.pos:])
 		b.buf = buf
 	}
