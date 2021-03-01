@@ -11,8 +11,8 @@ build:
 build-image:
 	@rm -rf ./examples/${name}/build
 	mkdir -p examples/${name}/build
-	docker run -it -e GOPROXY=https://goproxy.cn tinygo/tinygo-dev:latest \
-	-v $(shell pwd):/tmp/build-proxy-wasm-go -w /tmp/build-proxy-wasm-go \
+	docker run -v $(shell pwd):/tmp/build-proxy-wasm-go -w /tmp/build-proxy-wasm-go \
+	-e GOPROXY=https://goproxy.cn -it tinygo/tinygo-dev:latest \
 	tinygo build -o /tmp/build-proxy-wasm-go/examples/${name}/build/${name}-go.wasm \
 	-scheduler=none -target=wasi /tmp/build-proxy-wasm-go/examples/${name}/main/main.go
 
