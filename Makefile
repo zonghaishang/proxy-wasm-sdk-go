@@ -5,14 +5,16 @@
 build:
 	mkdir -p examples/${name}/build
 	@rm -rf examples/${name}/build/${name}-go.wasm
-	tinygo build -o ./examples/${name}/build/${name}-go.wasm -scheduler=none -target=wasi ./examples/${name}/main/main.go
+	tinygo build -o ./examples/${name}/build/${name}-go.wasm \
+	-scheduler=none -target=wasi ./examples/${name}/main/main.go
 
 build-image:
 	@rm -rf ./examples/${name}/build
 	mkdir -p examples/${name}/build
-	docker run -it -w /tmp/build-proxy-wasm-go -v $(shell pwd):/tmp/build-proxy-wasm-go tinygo/tinygo:0.16.0 \
-		tinygo build -o /tmp/build-proxy-wasm-go/examples/${name}/build/${name}-go.wasm -scheduler=none -target=wasi \
-		/tmp/build-proxy-wasm-go/examples/${name}/main/main.go
+	docker run -it -e GOPROXY=https://goproxy.cn tinygo/tinygo-dev:latest \
+	-v $(shell pwd):/tmp/build-proxy-wasm-go -w /tmp/build-proxy-wasm-go \
+	tinygo build -o /tmp/build-proxy-wasm-go/examples/${name}/build/${name}-go.wasm \
+	-scheduler=none -target=wasi /tmp/build-proxy-wasm-go/examples/${name}/main/main.go
 
 lint:
 	golangci-lint run --build-tags proxytest
