@@ -34,8 +34,8 @@ type ProtocolContext interface {
 	KeepAlive() KeepAlive // protocol keep alive
 	Hijacker() Hijacker   // protocol hijacker
 	Options() Options     // protocol options
-	OnProtocolDone()
-	OnLog()
+	//OnProtocolDone()
+	//OnLog()
 }
 
 // L4 layer extension (host not support now.)

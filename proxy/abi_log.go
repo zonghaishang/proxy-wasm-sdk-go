@@ -56,9 +56,9 @@ func (p *proxyLogger) Fatalf(format string, args ...interface{}) {
 
 //export proxy_on_log
 func proxyOnLog(contextID uint32) {
-	if ctx, ok := this.protocolStreams[contextID]; ok {
+	if _, ok := this.protocolStreams[contextID]; ok {
 		this.setActiveContextID(contextID)
-		ctx.OnLog()
+		//ctx.OnLog()
 	} else if ctx, ok := this.streams[contextID]; ok {
 		this.setActiveContextID(contextID)
 		ctx.OnLog()

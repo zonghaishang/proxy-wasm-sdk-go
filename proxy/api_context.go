@@ -28,9 +28,9 @@ func proxyOnDone(contextID uint32) bool {
 		this.setActiveContextID(contextID)
 		ctx.OnFilterStreamDone()
 		return true
-	} else if ctx, ok := this.protocolStreams[contextID]; ok {
+	} else if _, ok := this.protocolStreams[contextID]; ok {
 		this.setActiveContextID(contextID)
-		ctx.OnProtocolDone()
+		//ctx.OnProtocolDone()
 		return true
 	} else if ctx, ok := this.streams[contextID]; ok {
 		this.setActiveContextID(contextID)
