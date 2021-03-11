@@ -132,7 +132,7 @@ func (h *protocolEmulator) KeepAlive(contextID uint32, requestId uint64) Request
 		stdout.Fatalf("invalid context id: %d", contextID)
 	}
 
-	cs.Status = proxyKeepAliveBufferBytes(contextID, requestId)
+	cs.Status = proxyKeepAliveBufferBytes(contextID, int64(requestId))
 	if cs.Status == types.StatusOK {
 		cs.request = h.protocolEmulatorProxyKeepAlive()
 		return cs.request

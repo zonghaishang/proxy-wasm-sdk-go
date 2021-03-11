@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
-	"reflect"
 )
 
 //export proxy_decode_buffer_bytes
@@ -131,14 +130,16 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 		types.RequestOneWayType:
 		cmd, ok = cachedCmd.(Request)
 		if !ok {
-			log.Errorf("cached cmd should be Request, maybe a bug occurred, contextId: %v, actual type %v", contextID, reflect.TypeOf(cachedCmd))
+			detect, _ := cachedCmd.(Command)
+			log.Errorf("cached cmd should be Request, maybe a bug occurred, contextId: %v, actual hb: %v", contextID, detect.IsHeartbeat())
 			return types.StatusInternalFailure
 		}
 
 	case types.ResponseType:
 		cmd, ok = cachedCmd.(Response)
 		if !ok {
-			log.Errorf("cached cmd should be Response, maybe a bug occurred, contextId: %v, actual type %v", contextID, reflect.TypeOf(cachedCmd))
+			detect, _ := cachedCmd.(Command)
+			log.Errorf("cached cmd should be Response, maybe a bug occurred, contextId: %v, actual hb: %v ", contextID, detect.IsHeartbeat())
 			return types.StatusInternalFailure
 		}
 	default:
@@ -193,7 +194,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 }
 
 //export proxy_keepalive_buffer_bytes
-func proxyKeepAliveBufferBytes(contextID uint32, id uint64) types.Status {
+func proxyKeepAliveBufferBytes(contextID uint32, id int64) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
 		log.Errorf("failed to decode keepalive buffer, contextId %v not found", contextID)
@@ -202,7 +203,7 @@ func proxyKeepAliveBufferBytes(contextID uint32, id uint64) types.Status {
 
 	this.setActiveContextID(contextID)
 
-	cmd := ctx.KeepAlive().KeepAlive(id)
+	cmd := ctx.KeepAlive().KeepAlive(uint64(id))
 	attr := ctx.(attribute)
 	attr.set(types.AttributeKeyEncodeCommand, cmd)
 
