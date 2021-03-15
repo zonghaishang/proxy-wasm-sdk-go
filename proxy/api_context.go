@@ -57,7 +57,7 @@ func proxyOnDelete(contextID uint32) {
 		//	buf.WriteString(strconv.Itoa(int(id)))
 		//	buf.WriteString(",")
 		//}
-		//log.Infof("delete context id %d, remain: %s", contextID, buf.String())
+		//log.Infof("delete contextId %d, remain: %s", contextID, buf.String())
 	} else if _, ok := this.streams[contextID]; ok {
 		delete(this.streams, contextID)
 	} else if _, ok = this.rootContexts[contextID]; ok {

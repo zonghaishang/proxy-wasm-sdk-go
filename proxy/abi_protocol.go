@@ -58,7 +58,7 @@ func proxyDecodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.Status {
 	ctx, ok := this.protocolStreams[contextID]
 	if !ok {
-		log.Errorf("failed to decode buffer, context replacedId %v not found", contextID)
+		log.Errorf("failed to encode buffer, contextId %v not found", contextID)
 		return types.StatusInternalFailure
 	}
 	this.setActiveContextID(contextID)
