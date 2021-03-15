@@ -113,6 +113,13 @@ func (h *CommonHeader) Range(f func(key, value string) bool) {
 		}
 	}
 }
+func (h *CommonHeader) Clone() *CommonHeader {
+	clone := &CommonHeader{}
+	for k, v := range h.m {
+		clone.Set(k, v)
+	}
+	return clone
+}
 
 func (h *CommonHeader) ToMap() map[string]string {
 	if len(h.m) == 0 {

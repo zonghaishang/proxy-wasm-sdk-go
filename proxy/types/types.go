@@ -191,3 +191,37 @@ const (
 	RequestOneWayType  = 2
 	UnKnownRpcFlagType = "unknown protocol flag type"
 )
+
+// ContextKey type
+type ContextKey int
+
+// Context key types(built-in)
+const (
+	ContextKeyStreamID ContextKey = iota
+	ContextKeyConnectionID
+	ContextKeyListenerPort
+	ContextKeyListenerName
+	ContextKeyListenerType
+	ContextKeyListenerStatsNameSpace
+	ContextKeyNetworkFilterChainFactories
+	ContextKeyStreamFilterChainFactories
+	ContextKeyBufferPoolCtx
+	ContextKeyAccessLogs
+	ContextOriRemoteAddr
+	ContextKeyAcceptChan
+	ContextKeyAcceptBuffer
+	ContextKeyConnectionFd
+	ContextSubProtocol
+	ContextKeyTraceSpanKey
+	ContextKeyActiveSpan
+	ContextKeyTraceId
+	ContextKeyVariables
+	ContextKeyProxyGeneralConfig
+	ContextKeyDownStreamProtocol
+	ContextKeyConfigDownStreamProtocol
+	ContextKeyConfigUpStreamProtocol
+	ContextKeyDownStreamHeaders
+	ContextKeyDownStreamRespHeaders
+	ContextKeyStreamFilterPhase
+	ContextKeyEnd
+)
