@@ -203,7 +203,17 @@ func proxyKeepAliveBufferBytes(contextID uint32, id int64) types.Status {
 
 	this.setActiveContextID(contextID)
 
-	cmd := ctx.KeepAlive().KeepAlive(uint64(id))
+	// not support keepalive
+	keepAlive := ctx.KeepAlive()
+	if keepAlive == nil {
+		return types.StatusBadArgument
+	}
+
+	cmd := keepAlive.KeepAlive(uint64(id))
+	if cmd == nil {
+		return types.StatusBadArgument
+	}
+
 	attr := ctx.(attribute)
 	attr.set(types.AttributeKeyEncodeCommand, cmd)
 
