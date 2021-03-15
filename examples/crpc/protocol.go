@@ -1,7 +1,6 @@
 package crpc
 
 import (
-	"github.com/google/uuid"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
 	"strconv"
 )
@@ -29,7 +28,7 @@ func (c crpcProtocol) KeepAlive(requestId uint64) proxy.Request {
 			HeaderProperties: []byte{0xe0, 0x0, 0x0}, //0110 0000
 		},
 	}
-	uid, err := uuid.NewUUID()
+	uid, err := NewUUID()
 	if err != nil {
 		return nil
 	}

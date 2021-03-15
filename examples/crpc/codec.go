@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 	"reflect"
@@ -101,7 +100,7 @@ func encodeRequest(ctx context.Context, request *Request) (proxy.Buffer, error) 
 	buf.WriteUint16(request.HeaderLen)
 	buf.WriteByte(request.Version)
 	buf.Write(request.HeaderProperties)
-	uid, _ := uuid.Parse(request.RequestId)
+	uid, _ := Parse(request.RequestId)
 	buf.Write(uid[:])
 	if !request.Heartbeat {
 		buf.WriteUint32(request.Timeout)
@@ -185,7 +184,7 @@ func encodeResponse(ctx context.Context, response *Response) (proxy.Buffer, erro
 	buf.WriteUint16(response.HeaderLen)
 	buf.WriteByte(response.Version)
 	buf.Write(response.HeaderProperties)
-	uid, _ := uuid.Parse(response.RequestId)
+	uid, _ := Parse(response.RequestId)
 	buf.Write(uid[:])
 	if !response.Heartbeat {
 		buf.WriteString(response.TranNum)

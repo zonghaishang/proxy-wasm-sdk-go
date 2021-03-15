@@ -2,7 +2,7 @@ package crpc
 
 import (
 	"context"
-	"github.com/google/uuid"
+
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
 	"hash/fnv"
 	"strings"
@@ -15,7 +15,7 @@ func hash(s string) uint64 {
 }
 
 func getUUID(bytes []byte) string {
-	uid, err := uuid.FromBytes(bytes)
+	uid, err := FromBytes(bytes)
 	if err != nil {
 		return string(bytes)
 	}
