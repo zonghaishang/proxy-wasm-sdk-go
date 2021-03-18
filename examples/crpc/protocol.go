@@ -33,7 +33,6 @@ func (c crpcProtocol) KeepAlive(requestId uint64) proxy.Request {
 		return nil
 	}
 	request.RequestId = uid.String()
-	//heartBeatRequestIdCache.Set(request.RequestId, requestId, DefaultExpiration)
 	request.CommonHeader.Set("service", "test")
 	request.Heartbeat = true
 	proxy.Log.Debugf("[heartbeat trigger] requestId " + request.RequestId)

@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
-	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 	"reflect"
 	"strconv"
 )
@@ -255,11 +254,6 @@ func decodeRequest(ctx context.Context, data proxy.Buffer) (proxy.Command, error
 	}
 
 	request.RequestId = getUUID(bytes[12:28])
-	if ctx.Value(types.ContextKeyListenerType) == EGRESS {
-		request.isEgress = true
-	} else {
-		request.isEgress = false
-	}
 
 	request.OneWay = request.HeaderProperties[0]&0x64 == 0x64
 	request.Heartbeat = false
@@ -327,12 +321,6 @@ func decodeHeartbeatRequest(ctx context.Context, data proxy.Buffer) (proxy.Comma
 	}
 
 	request.RequestId = getUUID(bytes[12:28])
-
-	if ctx.Value(types.ContextKeyListenerType) == EGRESS {
-		request.isEgress = true
-	} else {
-		request.isEgress = false
-	}
 
 	request.OneWay = request.HeaderProperties[0]&0x64 == 0x64
 	request.Heartbeat = true

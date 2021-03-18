@@ -6,8 +6,7 @@ import (
 	"sync"
 )
 
-var egressRequestIdMapper sync.Map
-var ingressRequestIdMapper sync.Map
+var requestIdMapper sync.Map
 
 type RequestHeader struct {
 	MagicNum         []byte //2 byte
@@ -36,7 +35,6 @@ func (h *RequestHeader) Clone() proxy.Header {
 
 type Request struct {
 	RequestHeader
-	isEgress bool
 
 	rawData []byte // raw data
 	rawTags []byte // sub slice of raw data, tag bytes
@@ -70,41 +68,13 @@ func (r *Request) SetCommandId(id uint64) {
 }
 
 func (r *Request) GetRequestId() uint64 {
-	if r.Heartbeat {
-		hashId := hash(r.RequestId)
-		//value, ok := heartBeatRequestIdCache.Get(r.RequestId)
-		//
-		//if ok {
-		//	return value.(uint64)
-		//}
-		return hashId
-	}
-	if r.isEgress {
-		return hash(r.RequestId + "egress")
-	} else {
-		return hash(r.RequestId + "ingress")
-	}
+	return hash(r.RequestId)
 }
 
 func (r *Request) SetRequestId(id uint64) {
 	var hashId uint64
-	if r.Heartbeat {
-		hashId = hash(r.RequestId)
-		//value, ok := heartBeatRequestIdCache.Get(r.RequestId)
-		//proxy.Log.Debugf( "[heartbeat request] setRequest requestId: %s, hashId: %s, value", r.RequestId, hashId, value)
-		//if ok {
-		//	proxy.Log.Debugf( "[heartbeat request] replicas requestId: %s, hashId: %s, value", r.RequestId, hashId, value)
-		//	return
-		//}
-		//heartBeatRequestIdCache.Set(r.RequestId, id, DefaultExpiration)
-	}
-	if r.isEgress {
-		hashId = hash(r.RequestId + "egress")
-		egressRequestIdMapper.Store(hashId, id)
-	} else {
-		hashId = hash(r.RequestId + "ingress")
-		ingressRequestIdMapper.Store(hashId, id)
-	}
+	hashId = hash(r.RequestId)
+	requestIdMapper.Store(hashId, id)
 }
 
 func (r *Request) IsHeartbeatFrame() bool {
@@ -186,30 +156,20 @@ func (r *Response) GetRequestId() uint64 {
 	var (
 		hashId uint64
 	)
-	if r.Heartbeat {
-		hashId = hash(r.RequestId)
-		//id, ok := heartBeatRequestIdCache.Get(r.RequestId)
-		//if ok {
-		//	proxy.Log.Debugf("[heartbeat response] find response stream id from cache: %s, hashId: %s, id: %s", r.RequestId, hashId, id)
-		//	return id.(uint64)
-		//}
-		//proxy.Log.Debugf("[heartbeat response] cannot find response stream id from cache. requestId: %s, hashId: %s, id: %s", r.RequestId, hashId, id)
-		return hashId
-	}
 
 	hashId = hash(r.RequestId + "ingress")
-	id, ok := ingressRequestIdMapper.Load(hashId)
+	id, ok := requestIdMapper.Load(hashId)
 	if !ok {
 		hashId = hash(r.RequestId + "egress")
-		id, ok = egressRequestIdMapper.Load(hashId)
+		id, ok = requestIdMapper.Load(hashId)
 		if !ok {
 			// TODO what should to do when cannot find requestId
 			return hashId
 		}
-		egressRequestIdMapper.Delete(hashId)
+		requestIdMapper.Delete(hashId)
 		return id.(uint64)
 	}
-	ingressRequestIdMapper.Delete(hashId)
+	requestIdMapper.Delete(hashId)
 
 	return id.(uint64)
 }

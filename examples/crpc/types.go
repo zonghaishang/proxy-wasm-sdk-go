@@ -3,7 +3,7 @@ package crpc
 import "time"
 
 const (
-	PROTOCOL_NAME           = "crpc" //中信银行私有 rpc 协议
+	PROTOCOL_NAME           = "x-crpc" //中信银行私有 rpc 协议
 	ProtocolFirstByte  byte = 0x1A
 	ProtocolSecondByte byte = 0x19
 
