@@ -99,8 +99,7 @@ func encodeRequest(ctx context.Context, request *Request) (proxy.Buffer, error) 
 	buf.WriteUint16(request.HeaderLen)
 	buf.WriteByte(request.Version)
 	buf.Write(request.HeaderProperties)
-	uid, _ := Parse(request.RequestId)
-	buf.Write(uid[:])
+	buf.Write(request.RequestByte)
 	if !request.Heartbeat {
 		buf.WriteUint32(request.Timeout)
 		buf.WriteString(request.SourceApp)
@@ -114,7 +113,6 @@ func encodeRequest(ctx context.Context, request *Request) (proxy.Buffer, error) 
 	if request.Body != nil {
 		buf.Write(request.Body.Bytes())
 	}
-
 	return buf, nil
 }
 
@@ -183,8 +181,7 @@ func encodeResponse(ctx context.Context, response *Response) (proxy.Buffer, erro
 	buf.WriteUint16(response.HeaderLen)
 	buf.WriteByte(response.Version)
 	buf.Write(response.HeaderProperties)
-	uid, _ := Parse(response.RequestId)
-	buf.Write(uid[:])
+	buf.Write(response.RequestByte)
 	if !response.Heartbeat {
 		buf.WriteString(response.TranNum)
 		buf.WriteString(response.RpcRespCode)
@@ -252,9 +249,8 @@ func decodeRequest(ctx context.Context, data proxy.Buffer) (proxy.Command, error
 		CallApp:          string(bytes[98:102]),
 		TagCnt:           bytes[102],
 	}
-
+	request.RequestByte = bytes[12:28]
 	request.RequestId = getUUID(bytes[12:28])
-
 	request.OneWay = request.HeaderProperties[0]&0x64 == 0x64
 	request.Heartbeat = false
 
@@ -491,6 +487,7 @@ func decodeResponse(ctx context.Context, data proxy.Buffer) (cmd proxy.Command, 
 
 	response.Heartbeat = false
 
+	response.RequestByte = bytes[12:28]
 	response.RequestId = getUUID(bytes[12:28])
 	response.Data = proxy.NewBuffer(frameLen)
 	response.Data.Write(bytes[:frameLen])

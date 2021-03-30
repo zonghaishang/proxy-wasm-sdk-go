@@ -51,13 +51,56 @@ func TestCrpc(t *testing.T) {
 		t.Fatalf("failed to invoke host encode request buffer, err: %v", err)
 	}
 
+	// crpc plugin decode will be invoked
+	rsp, err := host.Decode(ctxId, proxy.WrapBuffer(decodeResponseBytes(strconv.FormatUint(host.CurrentStreamId(), 10))))
+	if err != nil {
+		t.Fatalf("failed to invoke host decode response buffer, err: %v", err)
+	}
+
+	if _, ok := rsp.(*crpc.Response); !ok {
+		t.Fatalf("decode request type error, expect *crpc.Response, actual %v", reflect.TypeOf(cmd))
+	}
+
+	// 2. invoke upstream encode
+	rspBuffer, err := host.Encode(ctxId, rsp)
+	if err != nil {
+		t.Fatalf("failed to invoke host encode response buffer, err: %v", err)
+	}
+
+	// check upstream content with downstream request
+	if len(decodeResponseBytes(strconv.FormatUint(host.CurrentStreamId(), 10))) != len(rspBuffer.Bytes()) {
+		t.Fatalf("failed to invoke host encode response buffer, err: %v", err)
+	}
+
 	// complete protocol pipeline
 	host.CompleteProtocolContext(ctxId)
 }
 
+func decodeResponseBytes(id string) []byte {
+	parseUint, _ := strconv.ParseUint(id, 10, 64)
+	response := crpc.NewResponse(parseUint, "CRPC000", nil, nil)
+	response.Set(SERVICE_NAME_KEY, "test:1.0@crpc")
+	response.Set(SERVICE_VERSION_KEY, "1.0")
+	response.Set(GROUP_ID_KEY, "default")
+	response.Set(SERVICE_METHOD_NAME_KEY, "sayHi")
+	response.Set(TARGET_APP_NAME_KEY, "test1")
+	response.Set(TRACE_ID_KEY, "0000000000")
+
+	response.RpcRespCode = "CRPC000"
+	response.TranNum = "COBP20181105174343253620000000      "
+	response.AppRespCode = "AAAAAAA"
+	response.Heartbeat = false
+	response.Body = proxy.NewBuffer(100)
+	response.Body.WriteString("this is a test crpc response!")
+	encode, _ := crpc.NewCrpcProtocol().Codec().Encode(context.TODO(), response)
+	return encode.Bytes()
+
+}
+
 func decodedRequestBytes(id string) []byte {
 	rpcHeader := proxy.NewHeader()
-	request := crpc.NewRequest(id, rpcHeader, proxy.WrapBuffer([]byte("crpc body")))
+	parseUint, _ := strconv.ParseUint(id, 10, 64)
+	request := crpc.NewRequest(parseUint, rpcHeader, proxy.WrapBuffer([]byte("crpc body")))
 	request.Set(SERVICE_NAME_KEY, "test:1.0@crpc")
 	request.Set(SERVICE_VERSION_KEY, "1.0")
 	request.Set(GROUP_ID_KEY, "default")
@@ -82,6 +125,10 @@ func decodedRequestBytes(id string) []byte {
 		request.ApplySysTime = request.ApplySysTime[:26]
 	}
 	crpc.SetRequestHeaderValue(request)
+
+	commandId := request.CommandId()
+	proxy.Log.Info(strconv.FormatUint(commandId, 10))
+
 	buf, err := crpc.NewCrpcProtocol().Codec().Encode(context.TODO(), request)
 	if err != nil {
 		panic("failed to encode crpc request, err: " + err.Error())

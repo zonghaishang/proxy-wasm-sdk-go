@@ -7,6 +7,7 @@ import (
 
 func main() {
 	proxy.SetNewRootContext(rootContext)
+	proxy.SetNewProtocolContext(crpcContext)
 }
 
 type crpcProtocolContext struct {

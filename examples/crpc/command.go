@@ -1,8 +1,8 @@
 package crpc
 
 import (
+	"encoding/binary"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
-	"strconv"
 	"sync"
 )
 
@@ -16,6 +16,7 @@ type RequestHeader struct {
 	HeaderProperties []byte //3 byte
 	Heartbeat        bool
 	OneWay           bool
+	RequestByte      []byte //16 byte
 	RequestId        string //16 byte
 	Timeout          uint32 //4 byte
 	SourceApp        string //4 byte
@@ -59,22 +60,21 @@ func (r *Request) IsHeartbeat() bool {
 }
 
 func (r *Request) CommandId() uint64 {
-	parseInt, _ := strconv.ParseUint(r.RequestId, 10, 64)
-	return parseInt
+	return r.GetRequestId()
 }
 
 func (r *Request) SetCommandId(id uint64) {
-	r.RequestId = strconv.FormatUint(id, 10)
+	r.SetRequestId(id)
 }
 
 func (r *Request) GetRequestId() uint64 {
-	return hash(r.RequestId)
+	return binary.BigEndian.Uint64(r.RequestByte[:8])
 }
 
 func (r *Request) SetRequestId(id uint64) {
-	var hashId uint64
-	hashId = hash(r.RequestId)
-	requestIdMapper.Store(hashId, id)
+	binary.BigEndian.PutUint64(r.RequestByte[:8], id)
+	r.RequestId = getUUID(r.RequestByte[:])
+	r.Set(GOVERN_REQUEST_ID, r.RequestId)
 }
 
 func (r *Request) IsHeartbeatFrame() bool {
@@ -104,6 +104,7 @@ type ResponseHeader struct {
 	Version          byte   //1 byte
 	HeaderProperties []byte //3 byte
 	Heartbeat        bool
+	RequestByte      []byte //16 byte
 	RequestId        string //16 byte
 	TranNum          string //36 byte
 	RpcRespCode      string //7 byte
@@ -143,38 +144,23 @@ func (r *Response) IsHeartbeat() bool {
 }
 
 func (r *Response) CommandId() uint64 {
-	parseUint, _ := strconv.ParseUint(r.RequestId, 10, 64)
-	return parseUint
+	return r.GetRequestId()
 }
 
 func (r *Response) SetCommandId(id uint64) {
-	r.RequestId = strconv.FormatUint(id, 10)
+	r.SetRequestId(id)
 }
 
 // ~ XRespFrame
 func (r *Response) GetRequestId() uint64 {
-	var (
-		hashId uint64
-	)
-
-	hashId = hash(r.RequestId + "ingress")
-	id, ok := requestIdMapper.Load(hashId)
-	if !ok {
-		hashId = hash(r.RequestId + "egress")
-		id, ok = requestIdMapper.Load(hashId)
-		if !ok {
-			// TODO what should to do when cannot find requestId
-			return hashId
-		}
-		requestIdMapper.Delete(hashId)
-		return id.(uint64)
-	}
-	requestIdMapper.Delete(hashId)
-
-	return id.(uint64)
+	return binary.BigEndian.Uint64(r.RequestByte[:8])
 }
 
 func (r *Response) SetRequestId(id uint64) {
+
+	binary.BigEndian.PutUint64(r.RequestByte[:8], id)
+	r.RequestId = getUUID(r.RequestByte[:])
+	r.Set(GOVERN_REQUEST_ID, r.RequestId)
 }
 
 func (r *Response) IsHeartbeatFrame() bool {
