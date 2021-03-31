@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"github.com/zonghaishang/proxy-wasm-sdk-go/proxy/types"
 	stdout "log"
@@ -147,7 +148,6 @@ func (h *protocolEmulator) ReplyKeepAlive(contextID uint32, request Request) Res
 		stdout.Fatalf("invalid context id: %d", contextID)
 	}
 
-	// todo: buffer data format should be
 	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes
 	bufferData := request.GetData().Bytes()[0]
 	cs.Status = proxyReplyKeepAliveBufferBytes(contextID, &bufferData, request.GetData().Len())
@@ -166,10 +166,44 @@ func (h *protocolEmulator) Hijack(contextID uint32, request Request, code uint32
 		stdout.Fatalf("invalid context id: %d", contextID)
 	}
 
-	// todo: buffer data format should be
-	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes
-	bufferData := request.GetData().Bytes()[0]
-	cs.Status = proxyHijackBufferBytes(contextID, int32(code), &bufferData, request.GetData().Len())
+	// encode data format:
+	// encoded header map | Flag | replaceId, id | Timeout | drain length | raw dataBytes
+	headerBytes := 0
+
+	// host holds the complete packet of the request
+	// because the request is a developer private object,
+	// the entire message is encoded directly here
+	buf, err := this.protocolStreams[contextID].Codec().Encode(context.TODO(), request)
+	if err != nil {
+		panic("failed to encode hijack request")
+	}
+	drainLen := buf.Len()
+
+	total := 4 + headerBytes + 1 + 8*2 + 4*2 + drainLen
+	data := NewBuffer(total)
+	data.WriteUint32(uint32(headerBytes))
+
+	flag := RpcRequestFlag
+	if request.IsHeartbeat() {
+		flag |= HeartBeatFlag
+	}
+	if request.IsOneWay() {
+		flag |= RpcOnewayFlag
+	}
+
+	data.WriteByte(flag)
+	data.WriteUint64(request.CommandId())
+	// whether request is replaced with an ID or not,
+	// what is returned here is the real ID(should be command response id)
+	data.WriteUint64(request.CommandId())
+	data.WriteUint32(request.GetTimeout())
+
+	data.WriteUint32(uint32(drainLen))
+	if drainLen > 0 {
+		data.Write(buf.Bytes())
+	}
+
+	cs.Status = proxyHijackBufferBytes(contextID, int32(code), &data.Bytes()[0], data.Len())
 	if cs.Status == types.StatusOK {
 		cs.response = h.protocolEmulatorProxyReplyKeepAlive()
 		return cs.response
@@ -216,4 +250,6 @@ func (h *protocolEmulator) CompleteProtocolContext(contextID uint32) {
 	proxyOnLog(contextID)
 	proxyOnDone(contextID)
 	proxyOnDelete(contextID)
+	// release host resource
+	delete(h.protocolStreams, contextID)
 }
