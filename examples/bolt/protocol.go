@@ -95,8 +95,8 @@ func (proto *boltProtocol) Hijack(request proxy.Request, code uint32) proxy.Resp
 			CmdType:   CmdTypeResponse,
 			CmdCode:   CmdCodeRpcResponse,
 			Version:   ProtocolVersion,
-			RequestId: 0,                 // this would be overwrite by stream layer
-			Codec:     Hessian2Serialize, //todo: read default boltCodec from config
+			RequestId: uint32(request.CommandId()), // this would be overwrite by stream layer
+			Codec:     Hessian2Serialize,           //todo: read default boltCodec from config
 		},
 		Status: uint16(code),
 	}

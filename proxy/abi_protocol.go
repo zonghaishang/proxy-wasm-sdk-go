@@ -73,7 +73,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 	buffer := WrapBuffer(data)
 
 	// bufferData format:
-	// encoded header map | Flag | replaceId, id | (Timeout|GetStatus) | drain length | raw dataBytes
+	// encoded header map | Flag | replaceId, id | (Timeout|Status) | drain length | raw dataBytes
 	headerBytes, err := buffer.ReadInt()
 	if err != nil {
 		log.Errorf("failed to read decode buffer header map, contextId: %v", contextID)
@@ -150,7 +150,7 @@ func proxyEncodeBufferBytes(contextID uint32, bufferData *byte, len int) types.S
 	id, err := buffer.ReadUint64()
 	// we check encoded id equals cached command id
 	if id != cmd.CommandId() {
-		log.Errorf("encode buffer command id is not match , expect = %d, actual = %d", cmd.CommandId(), id)
+		log.Errorf("encode buffer command id is not match, contextId: %v , cached id = %d, actual = %d, replaced id = %d", contextID, cmd.CommandId(), id, replacedId)
 		return types.StatusInternalFailure
 	}
 
@@ -249,9 +249,48 @@ func proxyHijackBufferBytes(contextID uint32, statusCode int32, bufferData *byte
 
 	this.setActiveContextID(contextID)
 
-	cmd := ctx.(attribute).attr(types.AttributeKeyDecodeCommand)
+	if len <= 0 {
+		// should never be happen
+		return types.StatusEmpty
+	}
+
+	// convert data into an array of dataBytes to be parsed
+	data := parseByteSlice(bufferData, len)
+	buffer := WrapBuffer(data)
+
+	// bufferData format:
+	// encoded header map | Flag | replaceId, id | Timeout | drain length | raw dataBytes
+	headerBytes, err := buffer.ReadInt()
+	if err != nil {
+		log.Errorf("failed to read hijack buffer header map, contextId: %v, err: %v", contextID, err)
+		return types.StatusInternalFailure
+	}
+
+	offset := 4 + headerBytes + 1 + 8*2 + 4
+	// move drain length offset
+	buffer.Move(offset)
+
+	drainLen, err := buffer.ReadInt()
+	if err != nil {
+		log.Errorf("failed to read hijack buffer, contextId: %v, err: %v", contextID, err)
+		return types.StatusInternalFailure
+	}
+
+	if drainLen <= 0 {
+		log.Errorf("hijack request content is nil, contextId: %v", contextID)
+		return types.StatusInternalFailure
+	}
+
+	payload := data[offset+4 : offset+4+drainLen]
+	// build request command
+	cmd, err := ctx.Codec().Decode(context.TODO(), WrapBuffer(payload))
+	if err != nil {
+		log.Errorf("failed to build hijack request command, contextId: %v, err: %v", contextID, err)
+		return types.StatusInternalFailure
+	}
 
 	resp := ctx.Hijacker().Hijack(cmd.(Request), Mapping(statusCode))
+
 	attr := ctx.(attribute)
 	attr.set(types.AttributeKeyEncodeCommand, resp)
 
