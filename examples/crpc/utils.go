@@ -17,6 +17,7 @@ func hash(s string) uint64 {
 func getUUID(bytes []byte) string {
 	uid, err := FromBytes(bytes)
 	if err != nil {
+		proxy.Log.Warnf("uuid error %v", err)
 		return string(bytes)
 	}
 	return uid.String()

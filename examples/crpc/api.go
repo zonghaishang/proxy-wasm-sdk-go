@@ -2,13 +2,14 @@ package crpc
 
 import "github.com/zonghaishang/proxy-wasm-sdk-go/proxy"
 
-func NewRequest(requestId string, headers proxy.Header, data proxy.Buffer) *Request {
+func NewRequest(id uint64, headers proxy.Header, data proxy.Buffer) *Request {
 	request := &Request{
 		RequestHeader: RequestHeader{
 			MagicNum:         []byte{ProtocolFirstByte, ProtocolSecondByte},
 			RequestLen:       uint32(RequestHeaderLen),
 			HeaderLen:        uint16(RequestHeaderLen),
 			Version:          0x01,
+			RequestByte:      make([]byte, 16),
 			HeaderProperties: []byte{0xc4, 0x0, 0x0}, //1100 0000
 		},
 	}
@@ -18,6 +19,7 @@ func NewRequest(requestId string, headers proxy.Header, data proxy.Buffer) *Requ
 			return true
 		})
 	}
+	request.SetRequestId(id)
 	if data != nil {
 		//request.Data = data
 		request.Body = data
@@ -25,7 +27,7 @@ func NewRequest(requestId string, headers proxy.Header, data proxy.Buffer) *Requ
 	return request
 }
 
-func NewResponse(requestId string, statusCode string, headers proxy.Header, data proxy.Buffer) *Response {
+func NewResponse(requestId uint64, statusCode string, headers proxy.Header, data proxy.Buffer) *Response {
 	response := &Response{
 		ResponseHeader: ResponseHeader{
 			MagicNum:         []byte{ProtocolFirstByte, ProtocolSecondByte},
@@ -33,8 +35,9 @@ func NewResponse(requestId string, statusCode string, headers proxy.Header, data
 			HeaderLen:        uint16(HeartBeatHeaderLen),
 			Version:          0x01,
 			HeaderProperties: []byte{0x0, 0x0, 0x0}, //0000 0000
-			RequestId:        requestId,
-			RpcRespCode:      statusCode,
+			RequestByte:      make([]byte, 16),
+			//RequestId:        requestId,
+			RpcRespCode: statusCode,
 		},
 	}
 	// set headers
@@ -44,7 +47,7 @@ func NewResponse(requestId string, statusCode string, headers proxy.Header, data
 			return true
 		})
 	}
-
+	response.SetRequestId(requestId)
 	// set content
 	if data != nil {
 		response.Data = data
